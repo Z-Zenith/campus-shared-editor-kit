@@ -29,6 +29,7 @@ import type {
   HighlightAnnotation,
   TextBoxAnnotation,
   InkAnnotation,
+  ShapeAnnotation,
   InkStroke,
   OcrPageResult,
   DocumentViewerProps,
@@ -82,7 +83,7 @@ function unwrap<T, E>(r: Result<T, E>): T {
 const _errorCodeSample: SekErrorCode = 'unsupported_language';
 void _errorCodeSample;
 
-// ---- Annotation is a discriminated union of three kinds ----
+// ---- Annotation is a discriminated union of four kinds ----
 function classifyAnnotation(a: Annotation): string {
   switch (a.kind) {
     case 'highlight':
@@ -91,8 +92,23 @@ function classifyAnnotation(a: Annotation): string {
       return a.text;
     case 'ink':
       return a.strokes[0]?.color ?? 'no-stroke';
+    case 'shape':
+      return a.shapeType;
   }
 }
+
+// SEK-05 — ShapeAnnotation shape compiles, start/end round-trip as points
+const _shapeAnnotation: ShapeAnnotation = {
+  kind: 'shape',
+  id: 'a2',
+  page: 1,
+  shapeType: 'arrow',
+  start: { x: 0.1, y: 0.1 },
+  end: { x: 0.5, y: 0.5 },
+  createdAt: '',
+  createdBy: 'u1',
+};
+void _shapeAnnotation;
 
 // ---- DocumentType is a closed union ----
 const _docType: DocumentType = 'pdf';
@@ -179,6 +195,7 @@ declare const _barrelExports: {
   highlight: HighlightAnnotation;
   textBox: TextBoxAnnotation;
   ink: InkAnnotation;
+  shape: ShapeAnnotation;
   stroke: InkStroke;
   ocr: OcrPageResult;
   docDesc: DocumentDescriptor;

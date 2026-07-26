@@ -17,10 +17,12 @@
  *   - SEK-02 (Document viewer)        — Must — implemented (DocumentViewer).
  *   - SEK-03 (Markdown notes)         — Must — implemented (NotesEditor).
  *   - SEK-04 (Built-in image search)  — Could — interface only.
- *   - SEK-05 (Inking w/ diagrams)     — Won't — deliberately NOT defined here.
- *                                       Will reuse the InkStroke primitive
- *                                       (types/common.ts) when promoted.
- *                                       Adding it now would be contract drift.
+ *   - SEK-05 (Inking w/ diagrams)     — Won't, promoted — implemented
+ *                                       (DocumentViewer's diagram-ink mode).
+ *                                       Shapes are stored as vector points
+ *                                       (ShapeAnnotation), reusing the same
+ *                                       normalized-page-space primitive
+ *                                       InkStroke.points already used.
  *
  * Consumers:
  *   - apps/teacher-web     (TWA) — imports the TS interfaces directly.
@@ -64,6 +66,7 @@ export type {
   HighlightAnnotation,
   TextBoxAnnotation,
   InkAnnotation,
+  ShapeAnnotation,
   OcrPageResult,
   DocumentViewerProps,
   DocumentViewerApi,
