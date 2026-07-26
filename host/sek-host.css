@@ -1,0 +1,134 @@
+/*
+ * Minimal baseline styles for SEK's WebView host bundles (campus-student-desktop).
+ *
+ * SEK's components ship unstyled (BEM class names only, no CSS) — TWA supplies its own
+ * design system for these classes when it imports NotesEditor/CodeEditor as a normal
+ * React component. The WebView host bundles here have no such consumer stylesheet, so
+ * without this file the components render real DOM (a <select>, <textarea>s, a Run
+ * button, etc.) with zero layout/borders/sizing — functionally invisible on a white
+ * background, not actually broken. This is a functional baseline, not a design system;
+ * it just makes the host-bundle surface visible and usable.
+ */
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+  color: #222;
+}
+
+.sek-code-editor,
+.sek-notes-editor {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 12px;
+  gap: 8px;
+}
+
+.sek-code-editor__error,
+.sek-notes-editor__error {
+  color: #c0392b;
+  background: #fdedec;
+  border: 1px solid #c0392b;
+  border-radius: 4px;
+  padding: 8px 10px;
+}
+
+.sek-code-editor__language {
+  padding: 6px;
+  font-size: 14px;
+  align-self: flex-start;
+}
+
+.sek-code-editor__source {
+  flex: 1;
+  min-height: 200px;
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 14px;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  resize: vertical;
+}
+
+.sek-code-editor__stdin {
+  height: 60px;
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 13px;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.sek-code-editor__actions,
+.sek-notes-editor__actions {
+  display: flex;
+  gap: 8px;
+}
+
+.sek-code-editor__actions button,
+.sek-notes-editor__actions button {
+  padding: 8px 16px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.sek-code-editor__result {
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  padding: 8px 10px;
+  background: #f7f7f7;
+}
+
+.sek-code-editor__stdout,
+.sek-code-editor__stderr {
+  white-space: pre-wrap;
+  font-family: Consolas, "Courier New", monospace;
+  margin: 4px 0;
+}
+
+.sek-code-editor__stderr {
+  color: #c0392b;
+}
+
+.sek-code-editor__meta {
+  font-size: 12px;
+  color: #666;
+}
+
+.sek-notes-editor__title {
+  font-size: 18px;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  width: 100%;
+}
+
+.sek-notes-editor__body {
+  flex: 1;
+  min-height: 300px;
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 14px;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  resize: vertical;
+  width: 100%;
+}
+
+.sek-notes-editor__outgoing-links,
+.sek-notes-editor__backlinks {
+  font-size: 13px;
+  padding-left: 20px;
+  margin: 4px 0;
+}
