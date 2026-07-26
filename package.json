@@ -52,7 +52,7 @@
     "esbuild": "^0.28.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "typescript": "^5.4.0"
+    "typescript": "^7.0.2"
   },
   "keywords": [
     "campus-platform",
