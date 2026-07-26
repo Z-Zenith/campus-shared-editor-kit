@@ -16,8 +16,9 @@ import { createRoot, type Root } from 'react-dom/client';
 import { NotesEditor, extractOutgoingLinks } from '../index.js';
 import type { Note, NotesEditorProps } from '../notes/types.js';
 import type { Result, SekError, UserContext } from '../types/common.js';
+import type { ImageInsert, ImageSearchResponse, ImageSearchResult } from '../image-search/types.js';
 
-type BridgeMethod = 'save' | 'delete' | 'resolveLink' | 'listBacklinks';
+type BridgeMethod = 'save' | 'delete' | 'resolveLink' | 'listBacklinks' | 'searchImages' | 'uploadImage';
 
 interface HostRequest {
   readonly requestId: string;
@@ -93,6 +94,14 @@ window.__sekHostMount = (json: string) => {
     onDelete: (noteId) => callHost<void>('delete', { noteId }),
     onResolveLink: (toNoteId) => callHost<Note>('resolveLink', { toNoteId }),
     onListBacklinks: (toNoteId) => callHost<readonly Note[]>('listBacklinks', { toNoteId }),
+    // SDA-19/SEK-04: same imageSearch wiring TWA-14 uses, over the bridge instead of a
+    // direct fetch client — the C# side (SekBridge) owns auth/API calls either way.
+    imageSearch: {
+      user,
+      enabled: true,
+      onSearch: (query) => callHost<ImageSearchResponse>('searchImages', { query }),
+      onUploadImage: (result: ImageSearchResult) => callHost<ImageInsert>('uploadImage', { result }),
+    },
   };
 
   root.render(createElement(NotesEditor, props));
