@@ -97,6 +97,11 @@ export const DocumentViewer = forwardRef<DocumentViewerApi, DocumentViewerProps>
     // result instead of silently overwriting whatever the user is now
     // looking at.
     const ocrRequestIdRef = useRef(0);
+    // Bumped whenever the embedder swaps which document is open — guards
+    // commitChange against a slow annotation save for a since-abandoned
+    // document landing in the newly-opened one, same pattern as
+    // ocrRequestIdRef above but for annotation writes instead of OCR reads.
+    const docGenerationRef = useRef(0);
     // The pointer id that started the current draft. Without this, a second
     // finger touching the surface mid-drag (or any other stray pointer)
     // would feed its coordinates into the same in-progress draft.
@@ -116,6 +121,7 @@ export const DocumentViewer = forwardRef<DocumentViewerApi, DocumentViewerProps>
       setOcrResult(null);
       setOcrLoading(false);
       ocrRequestIdRef.current += 1;
+      docGenerationRef.current += 1;
       setError(KNOWN_DOCUMENT_TYPES.has(doc.type)
         ? null
         : { code: 'unsupported_document_type', message: `Unsupported document type: "${doc.type}".` });
@@ -168,7 +174,9 @@ export const DocumentViewer = forwardRef<DocumentViewerApi, DocumentViewerProps>
     };
 
     const commitChange = async (change: AnnotationChange): Promise<boolean> => {
+      const generation = docGenerationRef.current;
       const result = await onAnnotationChange(change);
+      if (generation !== docGenerationRef.current) return false;
       if (!result.ok) {
         setError(result.error);
         return false;
