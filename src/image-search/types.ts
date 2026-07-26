@@ -73,4 +73,12 @@ export interface ImageSearchProps {
    * embedder never writes the original sourceUrl into the note.
    */
   readonly onUploadImage: (result: ImageSearchResult) => Promise<Result<ImageInsert, SekError>>;
+  /**
+   * Called once onUploadImage resolves successfully, handing the embed
+   * payload to whatever owns the note's Markdown (NotesEditor, when rendered
+   * as its child — see the module doc comment above). Kept separate from
+   * onUploadImage so a component can be exercised/tested without needing a
+   * real note to insert into.
+   */
+  readonly onInsert: (insert: ImageInsert) => void;
 }

@@ -1,6 +1,5 @@
 /**
  * SEK-04 — Built-in image search public surface.
- * Component implementation lands in a later PR.
  */
 export type {
   ImageSearchResult,
@@ -8,3 +7,5 @@ export type {
   ImageInsert,
   ImageSearchProps,
 } from './types.js';
+export { ImageSearch } from './ImageSearch.js';
+export { buildImageMarkdown } from './logic.js';

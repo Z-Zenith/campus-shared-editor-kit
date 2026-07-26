@@ -16,7 +16,7 @@
  *   - SEK-01 (Code editor)            — Must — implemented (CodeEditor).
  *   - SEK-02 (Document viewer)        — Must — implemented (DocumentViewer).
  *   - SEK-03 (Markdown notes)         — Must — implemented (NotesEditor).
- *   - SEK-04 (Built-in image search)  — Could — interface only.
+ *   - SEK-04 (Built-in image search)  — Could — implemented (ImageSearch).
  *   - SEK-05 (Inking w/ diagrams)     — Won't — deliberately NOT defined here.
  *                                       Will reuse the InkStroke primitive
  *                                       (types/common.ts) when promoted.
@@ -90,3 +90,4 @@ export type {
   ImageInsert,
   ImageSearchProps,
 } from './image-search/index.js';
+export { ImageSearch, buildImageMarkdown } from './image-search/index.js';

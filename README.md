@@ -11,7 +11,7 @@ Public TypeScript interface for the **Shared Editor Kit (SEK)** — the cross-co
 | [SEK-01](../docs/Campus%20platform%20architecture.md#features--shared-editor-kit-sek) | Code editor (C, C++, Python, Java, .NET, HTML, CSS, JS/TS, Node, SQL, JSON, YAML) | **Implemented** — `CodeEditor` + `isSupportedLanguage` |
 | [SEK-02](../docs/Campus%20platform%20architecture.md#features--shared-editor-kit-sek) | Document viewer & annotator (PDF/PPTX/DOCX, highlights/textboxes/ink, OCR) | **Implemented** — `DocumentViewer` |
 | [SEK-03](../docs/Campus%20platform%20architecture.md#features--shared-editor-kit-sek) | Markdown notes (Obsidian-style linked notes) | **Implemented** — `NotesEditor` + `extractOutgoingLinks` |
-| [SEK-04](../docs/Campus%20platform%20architecture.md#features--shared-editor-kit-sek) | Built-in image search (inside the notes editor) | Interface only |
+| [SEK-04](../docs/Campus%20platform%20architecture.md#features--shared-editor-kit-sek) | Built-in image search (inside the notes editor) | **Implemented** — `ImageSearch`, rendered as a child of `NotesEditor` via its optional `imageSearch` prop |
 | [SEK-05](../docs/Campus%20platform%20architecture.md#features--shared-editor-kit-sek) | Inking w/ block diagrams | **Not defined** — Won't priority; will reuse the shared `InkStroke` primitive when promoted |
 
 ## Consumers
@@ -55,6 +55,7 @@ These are the non-obvious decisions that came from the EARS requirements and acc
 5. **Image search returns a `content-addressed` URL, not the original `sourceUrl`.** This is the contract for SEK-04's "inserted image is embedded, not just linked" acceptance criterion. The embedder's `onUploadImage` is the step that makes the image survive the source going away.
 6. **Annotation coordinates are normalized 0..1.** Survives zoom, retina displays, and PDF re-renders. The renderer in the embedder multiplies by the rendered page size.
 7. **`InkStroke` is a vector primitive, defined in `types/common.ts`** (not `document-viewer`) precisely so SEK-05 can import it without reaching into SEK-02's module. When SEK-05 gets promoted from Won't, it will reuse this same shape for vector shape data ("stored as vector shapes, not raster ink").
+8. **`ImageSearch` is never rendered standalone.** `ImageSearchProps` has no way to reach a note directly — its `onInsert` callback hands the embed payload back to whoever renders it. `NotesEditor`'s optional `imageSearch` prop is the only supported way to mount it, which is what satisfies "no separate image search screen outside the notes editor."
 
 ## Contract change protocol
 
