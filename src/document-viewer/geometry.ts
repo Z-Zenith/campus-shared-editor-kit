@@ -61,3 +61,26 @@ export function isStrokeSizable(points: ReadonlyArray<Point>): boolean {
   const first = points[0]!;
   return points.some((p) => Math.hypot(p.x - first.x, p.y - first.y) >= MIN_STROKE_LENGTH);
 }
+
+/**
+ * SEK-05 — snaps a point to the nearest intersection of a uniform grid in
+ * the same 0..1 page space every other annotation coordinate uses. The
+ * caller (DocumentViewer's `GRID_SIZE` constant) owns the actual grid size —
+ * this stays a pure function of `gridSize` so it's testable the same way as
+ * the rest of this module, without importing a component-level constant.
+ *
+ * Applied on commit (pointer-up), not while dragging, so the live draft
+ * preview still tracks the pointer exactly and only the final shape jumps
+ * to the grid — that's what reads as "snapping to a light grid" rather than
+ * a hard constraint on the drag itself.
+ *
+ * Re-clamped through `clamp01` afterward: rounding to the nearest multiple
+ * of `gridSize` can overshoot past 1 when `gridSize` doesn't evenly divide
+ * the 0..1 range (e.g. a point at 1 with gridSize 0.6 rounds to 1.2).
+ */
+export function snapToGrid(point: Point, gridSize: number): Point {
+  return {
+    x: clamp01(Math.round(point.x / gridSize) * gridSize),
+    y: clamp01(Math.round(point.y / gridSize) * gridSize),
+  };
+}

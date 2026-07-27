@@ -1,0 +1,156 @@
+/*
+ * VS Code Dark+ / Light-style skin for the Coding tab's WebView host bundle.
+ *
+ * Layers on top of sek-host.css's structural baseline (layout, sizing) — this file owns
+ * only color. Selectors key off CodeEditor.tsx's `data-theme` attribute on the root
+ * `.sek-code-editor` element ('light' | 'dark'), which the component resolves at mount
+ * (and live, on OS theme change) from its `theme` prop.
+ */
+
+.sek-code-editor[data-theme="dark"] {
+  background: #1e1e1e;
+  color: #cccccc;
+}
+
+.sek-code-editor[data-theme="dark"] .sek-code-editor__sidebar {
+  background: #252526;
+  border-right: 1px solid #1e1e1e;
+}
+
+.sek-code-editor[data-theme="dark"] .sek-code-editor__sidebar-header {
+  color: #bbbbbb;
+}
+
+.sek-code-editor[data-theme="dark"] .sek-code-editor__new-file-button {
+  color: #cccccc;
+}
+
+.sek-code-editor[data-theme="dark"] .sek-code-editor__tree-file[data-active="true"] {
+  background: #37373d;
+}
+
+.sek-code-editor[data-theme="dark"] .sek-code-editor__tree-file-button {
+  color: #cccccc;
+}
+
+.sek-code-editor[data-theme="dark"] .sek-code-editor__tree-file-set-entry,
+.sek-code-editor[data-theme="dark"] .sek-code-editor__tree-file-delete {
+  color: #cccccc;
+}
+
+.sek-code-editor[data-theme="dark"] .sek-code-editor__tabs {
+  background: #252526;
+}
+
+.sek-code-editor[data-theme="dark"] .sek-code-editor__tab {
+  color: #969696;
+  background: #2d2d2d;
+  border-right: 1px solid #1e1e1e;
+}
+
+.sek-code-editor[data-theme="dark"] .sek-code-editor__tab[data-active="true"] {
+  color: #ffffff;
+  background: #1e1e1e;
+  border-top: 1px solid #007acc;
+}
+
+.sek-code-editor[data-theme="dark"] .sek-code-editor__new-file-form {
+  background: #1e1e1e;
+}
+
+.sek-code-editor[data-theme="dark"] .sek-code-editor__new-file-input {
+  background: #3c3c3c;
+  border: 1px solid #007acc;
+  color: #cccccc;
+}
+
+.sek-code-editor[data-theme="dark"] .sek-code-editor__statusbar {
+  background: #007acc;
+  color: #ffffff;
+}
+
+.sek-code-editor[data-theme="dark"] .sek-code-editor__stdin {
+  background: #1e1e1e;
+  color: #cccccc;
+  border: 1px solid #3c3c3c;
+}
+
+.sek-code-editor[data-theme="dark"] .sek-code-editor__actions {
+  background: #1e1e1e;
+  padding: 6px 10px;
+}
+
+.sek-code-editor[data-theme="dark"] .sek-code-editor__actions button {
+  background: #0e639c;
+  color: #ffffff;
+  border: none;
+  border-radius: 2px;
+}
+
+.sek-code-editor[data-theme="dark"] .sek-code-editor__actions button:hover {
+  background: #1177bb;
+}
+
+.sek-code-editor[data-theme="dark"] .sek-code-editor__output-panel {
+  background: #1e1e1e;
+  border-top: 1px solid #3c3c3c;
+}
+
+.sek-code-editor[data-theme="dark"] .sek-code-editor__output-tab {
+  color: #969696;
+}
+
+.sek-code-editor[data-theme="dark"] .sek-code-editor__output-tab[data-active="true"] {
+  color: #ffffff;
+  border-bottom: 1px solid #007acc;
+}
+
+.sek-code-editor[data-theme="dark"] .sek-code-editor__stdout {
+  color: #cccccc;
+}
+
+.sek-code-editor[data-theme="dark"] .sek-code-editor__stderr,
+.sek-code-editor[data-theme="dark"] .sek-code-editor__problems {
+  color: #f48771;
+}
+
+.sek-code-editor[data-theme="dark"] .sek-code-editor__error {
+  background: #5a1d1d;
+  color: #f48771;
+  border-color: #be1100;
+}
+
+/* Light theme: close to VS Code's default Light+ palette, mostly the accent color. */
+.sek-code-editor[data-theme="light"] .sek-code-editor__sidebar {
+  background: #f3f3f3;
+  border-right: 1px solid #e7e7e7;
+}
+
+.sek-code-editor[data-theme="light"] .sek-code-editor__tree-file[data-active="true"] {
+  background: #e4e6f1;
+}
+
+.sek-code-editor[data-theme="light"] .sek-code-editor__tabs {
+  background: #f3f3f3;
+}
+
+.sek-code-editor[data-theme="light"] .sek-code-editor__tab[data-active="true"] {
+  background: #ffffff;
+  border-top: 1px solid #007acc;
+}
+
+.sek-code-editor[data-theme="light"] .sek-code-editor__statusbar {
+  background: #007acc;
+  color: #ffffff;
+}
+
+.sek-code-editor[data-theme="light"] .sek-code-editor__actions button {
+  background: #007acc;
+  color: #ffffff;
+  border: none;
+  border-radius: 2px;
+}
+
+.sek-code-editor[data-theme="light"] .sek-code-editor__actions button:hover {
+  background: #0f8ae0;
+}
