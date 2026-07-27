@@ -82,18 +82,30 @@ if (!rootElement) {
 }
 const root: Root = createRoot(rootElement);
 
+// The host (C#) side has no visibility into whether this actually ran — InvokeScript
+// doesn't propagate in-page script errors as .NET exceptions, so a thrown error here
+// used to fail completely silently, leaving a permanently blank WebView with no error
+// shown anywhere. Reporting success/failure explicitly over the same postMessage
+// channel `callHost` uses lets SekBridge (C#) know either way.
 window.__sekHostMount = (json: string) => {
-  const { user, currentNote, canEdit }: MountMessage = JSON.parse(json);
+  try {
+    const { user, currentNote, canEdit }: MountMessage = JSON.parse(json);
 
-  const props: NotesEditorProps = {
-    user,
-    currentNote,
-    canEdit,
-    onSave: (note) => callHost<Note>('save', { note, links: extractOutgoingLinks(note.contentMarkdown) }),
-    onDelete: (noteId) => callHost<void>('delete', { noteId }),
-    onResolveLink: (toNoteId) => callHost<Note>('resolveLink', { toNoteId }),
-    onListBacklinks: (toNoteId) => callHost<readonly Note[]>('listBacklinks', { toNoteId }),
-  };
+    const props: NotesEditorProps = {
+      user,
+      currentNote,
+      canEdit,
+      onSave: (note) => callHost<Note>('save', { note, links: extractOutgoingLinks(note.contentMarkdown) }),
+      onDelete: (noteId) => callHost<void>('delete', { noteId }),
+      onResolveLink: (toNoteId) => callHost<Note>('resolveLink', { toNoteId }),
+      onListBacklinks: (toNoteId) => callHost<readonly Note[]>('listBacklinks', { toNoteId }),
+    };
 
-  root.render(createElement(NotesEditor, props));
+    root.render(createElement(NotesEditor, props));
+    window.chrome.webview.postMessage(JSON.stringify({ type: 'sekHostMounted' }));
+  } catch (error) {
+    window.chrome.webview.postMessage(
+      JSON.stringify({ type: 'sekHostMountFailed', message: String(error) })
+    );
+  }
 };

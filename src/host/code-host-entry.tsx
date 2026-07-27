@@ -88,18 +88,30 @@ if (!rootElement) {
 }
 const root: Root = createRoot(rootElement);
 
+// The host (C#) side has no visibility into whether this actually ran — InvokeScript
+// doesn't propagate in-page script errors as .NET exceptions, so a thrown error here
+// used to fail completely silently, leaving a permanently blank WebView with no error
+// shown anywhere. Reporting success/failure explicitly over the same postMessage
+// channel `callHost` uses lets CodeBridge (C#) know either way.
 window.__sekHostMount = (json: string) => {
-  const { user, currentProject, canRun, canEdit }: MountMessage = JSON.parse(json);
+  try {
+    const { user, currentProject, canRun, canEdit }: MountMessage = JSON.parse(json);
 
-  const props: CodeEditorProps = {
-    user,
-    ...(currentProject ? { initialProject: currentProject } : {}),
-    canRun,
-    canEdit,
-    defaultLanguage: 'python',
-    onRun: (project: CodeProject) => callHost<CodeRunResult>('run', { project }),
-    onSave: (project: CodeProject) => callHost<CodeProject>('save', { project }),
-  };
+    const props: CodeEditorProps = {
+      user,
+      ...(currentProject ? { initialProject: currentProject } : {}),
+      canRun,
+      canEdit,
+      defaultLanguage: 'python',
+      onRun: (project: CodeProject) => callHost<CodeRunResult>('run', { project }),
+      onSave: (project: CodeProject) => callHost<CodeProject>('save', { project }),
+    };
 
-  root.render(createElement(CodeEditor, props));
+    root.render(createElement(CodeEditor, props));
+    window.chrome.webview.postMessage(JSON.stringify({ type: 'sekHostMounted' }));
+  } catch (error) {
+    window.chrome.webview.postMessage(
+      JSON.stringify({ type: 'sekHostMountFailed', message: String(error) })
+    );
+  }
 };
