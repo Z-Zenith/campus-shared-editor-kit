@@ -25,6 +25,18 @@
   color: #cccccc;
 }
 
+.sek-code-editor[data-theme="dark"] .sek-code-editor__new-file-button:hover {
+  background: #ffffff1a;
+}
+
+.sek-code-editor[data-theme="dark"] .sek-code-editor__tree-folder-name {
+  color: #bbbbbb;
+}
+
+.sek-code-editor[data-theme="dark"] .sek-code-editor__tree-file:hover {
+  background: #2a2d2e;
+}
+
 .sek-code-editor[data-theme="dark"] .sek-code-editor__tree-file[data-active="true"] {
   background: #37373d;
 }
@@ -33,13 +45,24 @@
   color: #cccccc;
 }
 
+.sek-code-editor[data-theme="dark"] .sek-code-editor__tree-entry-badge {
+  background: #0e639c;
+  color: #ffffff;
+}
+
 .sek-code-editor[data-theme="dark"] .sek-code-editor__tree-file-set-entry,
 .sek-code-editor[data-theme="dark"] .sek-code-editor__tree-file-delete {
   color: #cccccc;
 }
 
+.sek-code-editor[data-theme="dark"] .sek-code-editor__tree-file-set-entry:hover,
+.sek-code-editor[data-theme="dark"] .sek-code-editor__tree-file-delete:hover {
+  background: #ffffff1a;
+}
+
 .sek-code-editor[data-theme="dark"] .sek-code-editor__tabs {
   background: #252526;
+  border-bottom: 1px solid #1e1e1e;
 }
 
 .sek-code-editor[data-theme="dark"] .sek-code-editor__tab {
@@ -51,11 +74,37 @@
 .sek-code-editor[data-theme="dark"] .sek-code-editor__tab[data-active="true"] {
   color: #ffffff;
   background: #1e1e1e;
-  border-top: 1px solid #007acc;
+  border-top: 2px solid #007acc;
+  padding-top: 6px;
+}
+
+.sek-code-editor[data-theme="dark"] .sek-code-editor__tab:hover {
+  color: #ffffff;
+}
+
+.sek-code-editor[data-theme="dark"] .sek-code-editor__tab-close {
+  color: #cccccc;
+}
+
+.sek-code-editor[data-theme="dark"] .sek-code-editor__tab-close:hover {
+  background: #ffffff2a;
 }
 
 .sek-code-editor[data-theme="dark"] .sek-code-editor__new-file-form {
-  background: #1e1e1e;
+  background: #252526;
+  border-bottom: 1px solid #1e1e1e;
+}
+
+.sek-code-editor[data-theme="dark"] .sek-code-editor__new-file-language {
+  background: #3c3c3c;
+  border: 1px solid #3c3c3c;
+  color: #cccccc;
+}
+
+.sek-code-editor[data-theme="dark"] .sek-code-editor__new-file-language:focus,
+.sek-code-editor[data-theme="dark"] .sek-code-editor__new-file-input:focus {
+  outline: none;
+  border-color: #007acc;
 }
 
 .sek-code-editor[data-theme="dark"] .sek-code-editor__new-file-input {
@@ -69,26 +118,52 @@
   color: #ffffff;
 }
 
+.sek-code-editor[data-theme="dark"] .sek-code-editor__stdin-wrap {
+  background: #1e1e1e;
+  border-top: 1px solid #3c3c3c;
+}
+
+.sek-code-editor[data-theme="dark"] .sek-code-editor__stdin-label {
+  color: #969696;
+}
+
 .sek-code-editor[data-theme="dark"] .sek-code-editor__stdin {
   background: #1e1e1e;
   color: #cccccc;
-  border: 1px solid #3c3c3c;
+}
+
+.sek-code-editor[data-theme="dark"] .sek-code-editor__stdin::placeholder {
+  color: #6a6a6a;
 }
 
 .sek-code-editor[data-theme="dark"] .sek-code-editor__actions {
   background: #1e1e1e;
-  padding: 6px 10px;
+  padding: 8px 10px;
+  border-top: 1px solid #3c3c3c;
 }
 
-.sek-code-editor[data-theme="dark"] .sek-code-editor__actions button {
+.sek-code-editor[data-theme="dark"] .sek-code-editor__run-button {
+  background: #16825d;
+  color: #ffffff;
+  border: none;
+}
+
+.sek-code-editor[data-theme="dark"] .sek-code-editor__run-button:hover:not(:disabled) {
+  background: #1a9c6f;
+}
+
+.sek-code-editor[data-theme="dark"] .sek-code-editor__save-button {
   background: #0e639c;
   color: #ffffff;
   border: none;
-  border-radius: 2px;
 }
 
-.sek-code-editor[data-theme="dark"] .sek-code-editor__actions button:hover {
+.sek-code-editor[data-theme="dark"] .sek-code-editor__save-button:hover:not(:disabled) {
   background: #1177bb;
+}
+
+.sek-code-editor[data-theme="dark"] .sek-code-editor__button-hint {
+  background: #ffffff26;
 }
 
 .sek-code-editor[data-theme="dark"] .sek-code-editor__output-panel {
@@ -100,9 +175,13 @@
   color: #969696;
 }
 
+.sek-code-editor[data-theme="dark"] .sek-code-editor__output-tab:hover {
+  color: #ffffff;
+}
+
 .sek-code-editor[data-theme="dark"] .sek-code-editor__output-tab[data-active="true"] {
   color: #ffffff;
-  border-bottom: 1px solid #007acc;
+  border-bottom: 2px solid #007acc;
 }
 
 .sek-code-editor[data-theme="dark"] .sek-code-editor__stdout {
@@ -114,29 +193,108 @@
   color: #f48771;
 }
 
+.sek-code-editor[data-theme="dark"] .sek-code-editor__meta[data-outcome="ok"] .sek-code-editor__meta-icon {
+  color: #3fb950;
+}
+
+.sek-code-editor[data-theme="dark"] .sek-code-editor__meta[data-outcome="fail"] .sek-code-editor__meta-icon {
+  color: #f14c4c;
+}
+
 .sek-code-editor[data-theme="dark"] .sek-code-editor__error {
   background: #5a1d1d;
   color: #f48771;
   border-color: #be1100;
 }
 
-/* Light theme: close to VS Code's default Light+ palette, mostly the accent color. */
+/* Light theme: close to VS Code's default Light+ palette. */
+.sek-code-editor[data-theme="light"] {
+  background: #ffffff;
+  color: #1e1e1e;
+}
+
 .sek-code-editor[data-theme="light"] .sek-code-editor__sidebar {
   background: #f3f3f3;
   border-right: 1px solid #e7e7e7;
+}
+
+.sek-code-editor[data-theme="light"] .sek-code-editor__sidebar-header {
+  color: #6f6f6f;
+}
+
+.sek-code-editor[data-theme="light"] .sek-code-editor__new-file-button:hover {
+  background: #0000001a;
+}
+
+.sek-code-editor[data-theme="light"] .sek-code-editor__tree-folder-name {
+  color: #6f6f6f;
+}
+
+.sek-code-editor[data-theme="light"] .sek-code-editor__tree-file:hover {
+  background: #e8e8e8;
 }
 
 .sek-code-editor[data-theme="light"] .sek-code-editor__tree-file[data-active="true"] {
   background: #e4e6f1;
 }
 
+.sek-code-editor[data-theme="light"] .sek-code-editor__tree-entry-badge {
+  background: #007acc;
+  color: #ffffff;
+}
+
+.sek-code-editor[data-theme="light"] .sek-code-editor__tree-file-set-entry:hover,
+.sek-code-editor[data-theme="light"] .sek-code-editor__tree-file-delete:hover {
+  background: #0000001a;
+}
+
 .sek-code-editor[data-theme="light"] .sek-code-editor__tabs {
   background: #f3f3f3;
+  border-bottom: 1px solid #e7e7e7;
+}
+
+.sek-code-editor[data-theme="light"] .sek-code-editor__tab {
+  color: #6f6f6f;
+  background: #ececec;
+  border-right: 1px solid #e7e7e7;
 }
 
 .sek-code-editor[data-theme="light"] .sek-code-editor__tab[data-active="true"] {
+  color: #1e1e1e;
   background: #ffffff;
-  border-top: 1px solid #007acc;
+  border-top: 2px solid #007acc;
+  padding-top: 6px;
+}
+
+.sek-code-editor[data-theme="light"] .sek-code-editor__tab:hover {
+  color: #1e1e1e;
+}
+
+.sek-code-editor[data-theme="light"] .sek-code-editor__tab-close:hover {
+  background: #0000002a;
+}
+
+.sek-code-editor[data-theme="light"] .sek-code-editor__new-file-form {
+  background: #f3f3f3;
+  border-bottom: 1px solid #e7e7e7;
+}
+
+.sek-code-editor[data-theme="light"] .sek-code-editor__new-file-language {
+  background: #ffffff;
+  border: 1px solid #cecece;
+  color: #1e1e1e;
+}
+
+.sek-code-editor[data-theme="light"] .sek-code-editor__new-file-language:focus,
+.sek-code-editor[data-theme="light"] .sek-code-editor__new-file-input:focus {
+  outline: none;
+  border-color: #007acc;
+}
+
+.sek-code-editor[data-theme="light"] .sek-code-editor__new-file-input {
+  background: #ffffff;
+  border: 1px solid #007acc;
+  color: #1e1e1e;
 }
 
 .sek-code-editor[data-theme="light"] .sek-code-editor__statusbar {
@@ -144,13 +302,84 @@
   color: #ffffff;
 }
 
-.sek-code-editor[data-theme="light"] .sek-code-editor__actions button {
+.sek-code-editor[data-theme="light"] .sek-code-editor__stdin-wrap {
+  background: #ffffff;
+  border-top: 1px solid #e7e7e7;
+}
+
+.sek-code-editor[data-theme="light"] .sek-code-editor__stdin-label {
+  color: #6f6f6f;
+}
+
+.sek-code-editor[data-theme="light"] .sek-code-editor__stdin {
+  background: #ffffff;
+  color: #1e1e1e;
+  border: none;
+}
+
+.sek-code-editor[data-theme="light"] .sek-code-editor__actions {
+  background: #ffffff;
+  padding: 8px 10px;
+  border-top: 1px solid #e7e7e7;
+}
+
+.sek-code-editor[data-theme="light"] .sek-code-editor__run-button {
+  background: #14825a;
+  color: #ffffff;
+  border: none;
+}
+
+.sek-code-editor[data-theme="light"] .sek-code-editor__run-button:hover:not(:disabled) {
+  background: #189a6b;
+}
+
+.sek-code-editor[data-theme="light"] .sek-code-editor__save-button {
   background: #007acc;
   color: #ffffff;
   border: none;
-  border-radius: 2px;
 }
 
-.sek-code-editor[data-theme="light"] .sek-code-editor__actions button:hover {
+.sek-code-editor[data-theme="light"] .sek-code-editor__save-button:hover:not(:disabled) {
   background: #0f8ae0;
+}
+
+.sek-code-editor[data-theme="light"] .sek-code-editor__button-hint {
+  background: #ffffff40;
+}
+
+.sek-code-editor[data-theme="light"] .sek-code-editor__output-panel {
+  background: #ffffff;
+  border-top: 1px solid #e7e7e7;
+}
+
+.sek-code-editor[data-theme="light"] .sek-code-editor__output-tab {
+  color: #6f6f6f;
+}
+
+.sek-code-editor[data-theme="light"] .sek-code-editor__output-tab:hover {
+  color: #1e1e1e;
+}
+
+.sek-code-editor[data-theme="light"] .sek-code-editor__output-tab[data-active="true"] {
+  color: #1e1e1e;
+  border-bottom: 2px solid #007acc;
+}
+
+.sek-code-editor[data-theme="light"] .sek-code-editor__stderr,
+.sek-code-editor[data-theme="light"] .sek-code-editor__problems {
+  color: #a31515;
+}
+
+.sek-code-editor[data-theme="light"] .sek-code-editor__meta[data-outcome="ok"] .sek-code-editor__meta-icon {
+  color: #14825a;
+}
+
+.sek-code-editor[data-theme="light"] .sek-code-editor__meta[data-outcome="fail"] .sek-code-editor__meta-icon {
+  color: #a31515;
+}
+
+.sek-code-editor[data-theme="light"] .sek-code-editor__error {
+  background: #fdedec;
+  color: #a31515;
+  border-color: #c0392b;
 }

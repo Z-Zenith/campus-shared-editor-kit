@@ -7,12 +7,14 @@
  * Unstyled (BEM class hooks only) per SEK's styling convention.
  */
 import { useMemo } from 'react';
-import type { CodeFile } from './types.js';
+import type { CodeFile, Language } from './types.js';
+import { LANGUAGE_ICONS } from './types.js';
 
 interface TreeNode {
   readonly name: string;
   readonly path: string;
   readonly isFile: boolean;
+  readonly language?: Language;
   readonly children: TreeNode[];
 }
 
@@ -29,7 +31,7 @@ function buildTree(files: readonly CodeFile[]): TreeNode[] {
       const isFile = i === segments.length - 1;
       let node = level.find((n) => n.name === segment && n.isFile === isFile);
       if (!node) {
-        node = { name: segment, path: pathSoFar, isFile, children: [] };
+        node = { name: segment, path: pathSoFar, isFile, ...(isFile ? { language: file.language } : {}), children: [] };
         level.push(node);
       }
       level = node.children;
@@ -72,7 +74,10 @@ function Node({
   if (!node.isFile) {
     return (
       <div className="sek-code-editor__tree-folder" style={{ paddingLeft: depth * 12 }}>
-        <span className="sek-code-editor__tree-folder-name">{node.name}</span>
+        <span className="sek-code-editor__tree-folder-name">
+          <span className="sek-code-editor__file-icon" aria-hidden="true">📁</span>
+          {node.name}
+        </span>
         {node.children.map((child) => (
           <Node
             key={`${child.path}-${child.isFile}`}
@@ -106,6 +111,9 @@ function Node({
         onClick={() => onSelect(node.path)}
         title={isEntry ? `${node.path} (entry file)` : node.path}
       >
+        <span className="sek-code-editor__file-icon" aria-hidden="true">
+          {node.language ? LANGUAGE_ICONS[node.language] : '📄'}
+        </span>
         {node.name}
         {isEntry && <span className="sek-code-editor__tree-entry-badge">entry</span>}
       </button>

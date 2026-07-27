@@ -60,6 +60,28 @@ export const LANGUAGE_LABELS: Readonly<Record<Language, string>> = {
 };
 
 /**
+ * Per-language glyph shown next to each file in the explorer tree and tab strip — a
+ * plain Unicode/emoji set (no image assets to bundle/ship in the WebView host) matching
+ * the same visual convention the embedder's own nav already uses (SDA's shell rail is
+ * emoji-icon-per-item too).
+ */
+export const LANGUAGE_ICONS: Readonly<Record<Language, string>> = {
+  c: '🔵',
+  cpp: '🔷',
+  python: '🐍',
+  java: '☕',
+  dotnet: '🟣',
+  html: '🌐',
+  css: '🎨',
+  javascript: '🟨',
+  typescript: '🔹',
+  nodejs: '🟩',
+  sql: '🗃️',
+  json: '📋',
+  yaml: '⚙️',
+};
+
+/**
  * A single file inside a CodeProject. `path` is also the file-tree/tab key —
  * it may contain `/` to express folders in the editor's tree UI, but the Code
  * Execution Service (Judge0) has no concept of subfolders at run time; the

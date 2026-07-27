@@ -21,7 +21,7 @@ import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRe
 import Editor, { type OnMount } from '@monaco-editor/react';
 import type { Result, SekError } from '../types/common.js';
 import type { CodeEditorApi, CodeEditorProps, CodeFile, CodeProject, CodeRunResult, Language } from './types.js';
-import { LANGUAGE_LABELS } from './types.js';
+import { LANGUAGE_ICONS, LANGUAGE_LABELS } from './types.js';
 import {
   buildStarterProject,
   defaultFilenameForLanguage,
@@ -304,7 +304,9 @@ export const CodeEditor = forwardRef<CodeEditorApi, CodeEditorProps>(
               files={files}
               activeFilePath={activeFilePath}
               entryFilePath={entryFilePath}
+              canEdit={canEdit}
               onSelect={handleSelectFile}
+              onCloseFile={handleDeleteFile}
             />
             {newFileDraft !== null && (
               // onBlur lives on the whole form (not the bare input, as before adding
@@ -327,7 +329,7 @@ export const CodeEditor = forwardRef<CodeEditorApi, CodeEditorProps>(
                 >
                   {(Object.keys(LANGUAGE_LABELS) as Language[]).map((lang) => (
                     <option key={lang} value={lang}>
-                      {LANGUAGE_LABELS[lang]}
+                      {LANGUAGE_ICONS[lang]} {LANGUAGE_LABELS[lang]}
                     </option>
                   ))}
                 </select>
@@ -366,30 +368,57 @@ export const CodeEditor = forwardRef<CodeEditorApi, CodeEditorProps>(
               )}
             </div>
             <div className="sek-code-editor__statusbar">
-              <span>{activeFile ? LANGUAGE_LABELS[activeFile.language] : ''}</span>
+              <span>
+                {activeFile && (
+                  <span className="sek-code-editor__file-icon" aria-hidden="true">
+                    {LANGUAGE_ICONS[activeFile.language]}
+                  </span>
+                )}
+                {activeFile ? LANGUAGE_LABELS[activeFile.language] : ''}
+              </span>
               <span>{activeFilePath}</span>
             </div>
-            <textarea
-              className="sek-code-editor__stdin"
-              value={stdin}
-              onChange={(e) => {
-                setStdin(e.target.value);
-                setResult(null);
-                setError(null);
-              }}
-              disabled={!canEdit}
-              placeholder="stdin (optional)"
-            />
+            <div className="sek-code-editor__stdin-wrap">
+              <label className="sek-code-editor__stdin-label" htmlFor="sek-code-editor-stdin">
+                STDIN
+              </label>
+              <textarea
+                id="sek-code-editor-stdin"
+                className="sek-code-editor__stdin"
+                value={stdin}
+                onChange={(e) => {
+                  setStdin(e.target.value);
+                  setResult(null);
+                  setError(null);
+                }}
+                disabled={!canEdit}
+                placeholder="Optional input piped to the program when it runs"
+              />
+            </div>
             {(canRun || onSave) && (
               <div className="sek-code-editor__actions">
                 {canRun && (
-                  <button type="button" onClick={() => void runProject(currentProject)} disabled={running}>
-                    {running ? 'Running…' : 'Run (F5)'}
+                  <button
+                    type="button"
+                    className="sek-code-editor__run-button"
+                    onClick={() => void runProject(currentProject)}
+                    disabled={running}
+                  >
+                    <span className="sek-code-editor__button-icon" aria-hidden="true">{running ? '' : '▶'}</span>
+                    {running ? 'Running…' : 'Run'}
+                    {!running && <span className="sek-code-editor__button-hint">F5</span>}
                   </button>
                 )}
                 {canEdit && onSave && (
-                  <button type="button" onClick={() => void saveProject()} disabled={saving}>
-                    {saving ? 'Saving…' : 'Save (Ctrl+S)'}
+                  <button
+                    type="button"
+                    className="sek-code-editor__save-button"
+                    onClick={() => void saveProject()}
+                    disabled={saving}
+                  >
+                    <span className="sek-code-editor__button-icon" aria-hidden="true">{saving ? '' : '💾'}</span>
+                    {saving ? 'Saving…' : 'Save'}
+                    {!saving && <span className="sek-code-editor__button-hint">Ctrl+S</span>}
                   </button>
                 )}
               </div>

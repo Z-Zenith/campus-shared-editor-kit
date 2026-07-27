@@ -5,6 +5,7 @@
  * the tree each time.
  */
 import type { CodeFile } from './types.js';
+import { LANGUAGE_ICONS } from './types.js';
 
 function basename(path: string): string {
   const idx = path.lastIndexOf('/');
@@ -15,10 +16,12 @@ interface FileTabsProps {
   readonly files: readonly CodeFile[];
   readonly activeFilePath: string;
   readonly entryFilePath: string;
+  readonly canEdit: boolean;
   readonly onSelect: (path: string) => void;
+  readonly onCloseFile: (path: string) => void;
 }
 
-export function FileTabs({ files, activeFilePath, entryFilePath, onSelect }: FileTabsProps) {
+export function FileTabs({ files, activeFilePath, entryFilePath, canEdit, onSelect, onCloseFile }: FileTabsProps) {
   return (
     <div className="sek-code-editor__tabs" role="tablist">
       {files.map((file) => (
@@ -32,8 +35,26 @@ export function FileTabs({ files, activeFilePath, entryFilePath, onSelect }: Fil
           onClick={() => onSelect(file.path)}
           title={file.path}
         >
+          <span className="sek-code-editor__file-icon" aria-hidden="true">{LANGUAGE_ICONS[file.language]}</span>
           {basename(file.path)}
           {file.path === entryFilePath && <span className="sek-code-editor__tab-entry-badge">•</span>}
+          {canEdit && files.length > 1 && (
+            <span
+              role="button"
+              tabIndex={-1}
+              className="sek-code-editor__tab-close"
+              aria-label={`Close ${file.path}`}
+              // Files always have somewhere to fall back to when there's more than
+              // one — the last-file-standing guard (see CodeEditor.tsx's
+              // handleDeleteFile) means this can never leave zero files open.
+              onClick={(e) => {
+                e.stopPropagation();
+                onCloseFile(file.path);
+              }}
+            >
+              ×
+            </span>
+          )}
         </button>
       ))}
     </div>
