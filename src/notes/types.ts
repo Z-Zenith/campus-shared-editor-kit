@@ -69,6 +69,8 @@ export interface NotesEditorProps {
   readonly onResolveLink: (toNoteId: string) => Promise<Result<Note, SekError>>;
   /** Query backlinks (notes that link TO a given note). */
   readonly onListBacklinks: (toNoteId: string) => Promise<Result<Backlinks, SekError>>;
+  /** Optional theme override. Defaults to the embedder's design system. */
+  readonly theme?: 'light' | 'dark' | 'system';
 }
 
 export interface NotesEditorApi {

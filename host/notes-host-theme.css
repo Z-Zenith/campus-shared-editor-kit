@@ -1,0 +1,136 @@
+/*
+ * Word-style skin for the Notes tab's WebView host bundle.
+ *
+ * Layers on top of sek-host.css's structural baseline (layout, sizing) — this file owns
+ * only color. Selectors key off NotesEditor.tsx's `data-theme` attribute on the root
+ * `.sek-notes-editor` element ('light' | 'dark'), which the component resolves at mount
+ * (and live, on OS theme change) from its `theme` prop — same mechanism as
+ * code-host-theme.css uses for the Coding tab, so both tabs flip together.
+ */
+
+.sek-notes-editor[data-theme="dark"] {
+  background: #1e1e1e;
+  color: #cccccc;
+}
+
+.sek-notes-editor[data-theme="dark"] .sek-notes-editor__title {
+  background: #2a2a2a;
+  border-color: #3f3f46;
+  color: #cccccc;
+}
+
+.sek-notes-editor[data-theme="dark"] .sek-notes-editor__toolbar {
+  background: #252526;
+  border-color: #3f3f46;
+}
+
+.sek-notes-editor[data-theme="dark"] .sek-notes-editor__toolbar-group {
+  border-right-color: #3f3f46;
+}
+
+.sek-notes-editor[data-theme="dark"] .sek-notes-editor__toolbar-button {
+  color: #cccccc;
+}
+
+.sek-notes-editor[data-theme="dark"] .sek-notes-editor__toolbar-button:hover:not(:disabled) {
+  background: #ffffff1a;
+}
+
+.sek-notes-editor[data-theme="dark"] .sek-notes-editor__toolbar-button[data-active="true"] {
+  background: #37373d;
+  border-color: #5599ff;
+}
+
+.sek-notes-editor[data-theme="dark"] .sek-notes-editor__toolbar-heading-select {
+  background: #2a2a2a;
+  border: 1px solid #3f3f46;
+  color: #cccccc;
+}
+
+.sek-notes-editor[data-theme="dark"] .sek-notes-editor__toolbar-color-swatch[data-active="true"] {
+  outline: 2px solid #5599ff;
+}
+
+.sek-notes-editor[data-theme="dark"] .sek-notes-editor__content {
+  background: #1e1e1e;
+  border-color: #3f3f46;
+}
+
+.sek-notes-editor[data-theme="dark"] .sek-notes-editor__content .ProseMirror a {
+  color: #5599ff;
+}
+
+.sek-notes-editor[data-theme="dark"] .sek-notes-editor__actions button {
+  background: #2b579a;
+  color: #ffffff;
+  border: none;
+  border-radius: 3px;
+}
+
+.sek-notes-editor[data-theme="dark"] .sek-notes-editor__actions button:hover {
+  background: #34669e;
+}
+
+/* Light theme: Word-like ribbon-gray toolbar + Word-blue accent. */
+.sek-notes-editor[data-theme="light"] {
+  background: #ffffff;
+  color: #1e1e1e;
+}
+
+.sek-notes-editor[data-theme="light"] .sek-notes-editor__title {
+  background: #ffffff;
+  border-color: #d2d0ce;
+  color: #1e1e1e;
+}
+
+.sek-notes-editor[data-theme="light"] .sek-notes-editor__toolbar {
+  background: #f3f2f1;
+  border-color: #d2d0ce;
+}
+
+.sek-notes-editor[data-theme="light"] .sek-notes-editor__toolbar-group {
+  border-right-color: #d2d0ce;
+}
+
+.sek-notes-editor[data-theme="light"] .sek-notes-editor__toolbar-button {
+  color: #1e1e1e;
+}
+
+.sek-notes-editor[data-theme="light"] .sek-notes-editor__toolbar-button:hover:not(:disabled) {
+  background: #e1dfdd;
+}
+
+.sek-notes-editor[data-theme="light"] .sek-notes-editor__toolbar-button[data-active="true"] {
+  background: #c7e0f4;
+  border-color: #2b579a;
+}
+
+.sek-notes-editor[data-theme="light"] .sek-notes-editor__toolbar-heading-select {
+  background: #ffffff;
+  border: 1px solid #d2d0ce;
+  color: #1e1e1e;
+}
+
+.sek-notes-editor[data-theme="light"] .sek-notes-editor__toolbar-color-swatch[data-active="true"] {
+  outline: 2px solid #2b579a;
+}
+
+.sek-notes-editor[data-theme="light"] .sek-notes-editor__content {
+  background: #ffffff;
+  border-color: #d2d0ce;
+}
+
+.sek-notes-editor[data-theme="light"] .sek-notes-editor__content .ProseMirror a {
+  color: #2b579a;
+}
+
+.sek-notes-editor[data-theme="light"] .sek-notes-editor__actions button {
+  background: #2b579a;
+  color: #ffffff;
+  border: none;
+  border-radius: 3px;
+}
+
+.sek-notes-editor[data-theme="light"] .sek-notes-editor__actions button:hover {
+  background: #244a85;
+}

@@ -18,6 +18,7 @@ await build({
 });
 cpSync('host/index.html', 'dist/host/index.html');
 cpSync('host/sek-host.css', 'dist/host/sek-host.css');
+cpSync('host/notes-host-theme.css', 'dist/host/notes-host-theme.css');
 
 await build({
   entryPoints: ['src/host/code-host-entry.tsx'],

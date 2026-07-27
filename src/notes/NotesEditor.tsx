@@ -4,6 +4,16 @@
  * Implements the NotesEditorProps/NotesEditorApi contract from ./types.ts.
  * Unstyled on purpose (semantic HTML + stable class hooks only) — SEK owns
  * no styling opinions, the embedder (TWA, SDA) skins it.
+ *
+ * WYSIWYG rich-text editing via Tiptap (the same engine class as VS Code's Monaco is to
+ * the Coding editor — chosen for `editor.chain()...run()` / `editor.isActive(...)`
+ * being purpose-built for a fully custom, unstyled toolbar, and for shipping no default
+ * CSS of its own). Markdown stays the on-disk/on-wire format — `content`/`contentRef`/
+ * `getMarkdown()`/`onSave`'s `Note.contentMarkdown` are unchanged from the previous
+ * plain-textarea version; only where `content` comes from and what renders it changed.
+ * See ./tiptapNoteLink.ts for why a custom node is needed to keep `[[wikilinks]]` and
+ * `[text](id:target)` links round-tripping correctly through Tiptap's Markdown
+ * serializer (verified empirically, not assumed from docs).
  */
 
 import {
@@ -14,6 +24,11 @@ import {
   useRef,
   useState,
 } from 'react';
+import { useEditor, EditorContent } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
+import { Markdown } from '@tiptap/markdown';
+import { TaskList, TaskItem } from '@tiptap/extension-list';
+import { TextStyle, Color } from '@tiptap/extension-text-style';
 import type { SekError } from '../types/common.js';
 import type {
   Backlinks,
@@ -23,8 +38,23 @@ import type {
   OutgoingLinks,
 } from './types.js';
 import { extractOutgoingLinks, uniqueLinkTargetsKey } from './linkExtraction.js';
+import { NoteLink, unescapeNoteLinkBrackets } from './tiptapNoteLink.js';
+import { NotesToolbar } from './NotesToolbar.js';
 
 type LinkStatus = 'pending' | 'resolved' | 'not_found';
+
+// Module-scope and never recreated: a fresh array literal passed to useEditor on every
+// render would tear down and reconstruct the underlying ProseMirror instance each time,
+// losing cursor position and undo history.
+const NOTES_EXTENSIONS = [
+  StarterKit.configure({ link: false }),
+  Markdown,
+  TaskList,
+  TaskItem.configure({ nested: false }),
+  TextStyle,
+  Color,
+  NoteLink,
+];
 
 function newNoteId(): string {
   // crypto.randomUUID is available in every embedder runtime we target
@@ -34,7 +64,7 @@ function newNoteId(): string {
 
 export const NotesEditor = forwardRef<NotesEditorApi, NotesEditorProps>(
   function NotesEditor(
-    { user, currentNote, canEdit, onSave, onDelete, onResolveLink, onListBacklinks },
+    { user, currentNote, canEdit, onSave, onDelete, onResolveLink, onListBacklinks, theme },
     ref
   ) {
     const [title, setTitle] = useState(currentNote?.title ?? '');
@@ -48,6 +78,18 @@ export const NotesEditor = forwardRef<NotesEditorApi, NotesEditorProps>(
     // always current even though the handle object identity is stable.
     const contentRef = useRef(content);
     contentRef.current = content;
+
+    const editor = useEditor({
+      extensions: NOTES_EXTENSIONS,
+      content: currentNote?.contentMarkdown ?? '',
+      contentType: 'markdown',
+      editable: canEdit,
+      onUpdate: ({ editor: e }) => setContent(unescapeNoteLinkBrackets(e.getMarkdown())),
+    });
+
+    useEffect(() => {
+      editor?.setEditable(canEdit);
+    }, [editor, canEdit]);
 
     const outgoingLinks: OutgoingLinks = useMemo(
       () => extractOutgoingLinks(content),
@@ -66,6 +108,7 @@ export const NotesEditor = forwardRef<NotesEditorApi, NotesEditorProps>(
       if (noteId === null) {
         setTitle('');
         setContent('');
+        editor?.commands.setContent('', { contentType: 'markdown' });
         setBacklinks([]);
         return;
       }
@@ -76,16 +119,20 @@ export const NotesEditor = forwardRef<NotesEditorApi, NotesEditorProps>(
       if (resolved.ok) {
         setTitle(resolved.value.title);
         setContent(resolved.value.contentMarkdown);
+        editor?.commands.setContent(resolved.value.contentMarkdown, { contentType: 'markdown' });
       } else {
         setError(resolved.error);
       }
       setBacklinks(backlinkResult.ok ? backlinkResult.value : []);
     };
 
-    // Reset the draft whenever the embedder swaps which note is being edited.
+    // Reset the draft whenever the embedder swaps which note is being edited. Updates
+    // both the editor instance (imperatively) and the mirrored `content` state in the
+    // same effect, rather than relying on onUpdate's callback loop to sync state back.
     useEffect(() => {
       setTitle(currentNote?.title ?? '');
       setContent(currentNote?.contentMarkdown ?? '');
+      editor?.commands.setContent(currentNote?.contentMarkdown ?? '', { contentType: 'markdown' });
       setBacklinks([]);
       if (currentNote) {
         onListBacklinks(currentNote.id).then((result) => {
@@ -156,8 +203,23 @@ export const NotesEditor = forwardRef<NotesEditorApi, NotesEditorProps>(
       if (!result.ok) setError(result.error);
     };
 
+    // Resolve 'system' against the OS/embedder color scheme, live — mirrors
+    // CodeEditor.tsx's identical block, so both editor tabs in the same shell
+    // flip together if the OS theme changes mid-session.
+    const [systemPrefersDark, setSystemPrefersDark] = useState(
+      () => typeof window !== 'undefined' && window.matchMedia?.('(prefers-color-scheme: dark)').matches
+    );
+    useEffect(() => {
+      const mql = window.matchMedia?.('(prefers-color-scheme: dark)');
+      if (!mql) return;
+      const listener = (e: MediaQueryListEvent) => setSystemPrefersDark(e.matches);
+      mql.addEventListener('change', listener);
+      return () => mql.removeEventListener('change', listener);
+    }, []);
+    const resolvedTheme = theme === 'system' || !theme ? (systemPrefersDark ? 'dark' : 'light') : theme;
+
     return (
-      <div className="sek-notes-editor">
+      <div className="sek-notes-editor" data-theme={resolvedTheme}>
         {error && (
           <div className="sek-notes-editor__error" role="alert">
             {error.message}
@@ -170,12 +232,8 @@ export const NotesEditor = forwardRef<NotesEditorApi, NotesEditorProps>(
           placeholder="Untitled note"
           disabled={!canEdit}
         />
-        <textarea
-          className="sek-notes-editor__body"
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          disabled={!canEdit}
-        />
+        <NotesToolbar editor={editor} canEdit={canEdit} />
+        <EditorContent editor={editor} className="sek-notes-editor__content" />
         {canEdit && (
           <div className="sek-notes-editor__actions">
             <button type="button" onClick={handleSave}>
