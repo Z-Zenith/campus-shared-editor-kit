@@ -6,7 +6,8 @@
     // Only for this type-check-only project (never the emitting build config):
     // lets tests/ import ../src/*.ts by its real extension so Node's native
     // TypeScript type-stripping (node --test) can resolve it without a bundler.
-    "allowImportingTsExtensions": true
+    "allowImportingTsExtensions": true,
+    "types": ["node"]
   },
   "include": ["src/**/*", "tests/**/*"],
   "exclude": ["node_modules", "dist"]
