@@ -51,7 +51,7 @@ import type {
   ImageSearchProps,
 } from '../src/index.js';
 
-import { CodeEditor, LANGUAGE_LABELS, isSupportedLanguage } from '../src/index.js';
+import { CodeEditor, LANGUAGE_LABELS, isSupportedLanguage, ImageSearch, buildImageMarkdown } from '../src/index.js';
 
 // ---- subpath imports also resolve (tree-shaking contract) ----
 import type { CodeEditorProps as CEP } from '../src/code-editor/index.js';
@@ -169,6 +169,27 @@ const _imageInsert: ImageInsert = {
   attribution: 'CC-BY / Author',
 };
 void _imageInsert;
+
+// SEK-04 — props shape compiles, including onInsert
+const _imageSearch: ImageSearchProps = {
+  user,
+  enabled: true,
+  onSearch: async (_query: string): Promise<Result<ImageSearchResponse, SekError>> => ({
+    ok: true,
+    value: { query: _query, results: [], degraded: false },
+  }),
+  onUploadImage: async (_result: ImageSearchResult): Promise<Result<ImageInsert, SekError>> => ({
+    ok: true,
+    value: _imageInsert,
+  }),
+  onInsert: (_insert: ImageInsert) => {},
+};
+void _imageSearch;
+
+declare const _imageSearchComponent: typeof ImageSearch;
+void _imageSearchComponent;
+const _markdown: string = buildImageMarkdown(_imageInsert);
+void _markdown;
 
 // API surface references compile (not invoked)
 declare const _codeApi: CodeEditorApi;

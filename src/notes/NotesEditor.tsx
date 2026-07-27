@@ -23,6 +23,9 @@ import type {
   OutgoingLinks,
 } from './types.js';
 import { extractOutgoingLinks, uniqueLinkTargetsKey } from './linkExtraction.js';
+import { ImageSearch } from '../image-search/ImageSearch.js';
+import { buildImageMarkdown } from '../image-search/logic.js';
+import type { ImageInsert } from '../image-search/types.js';
 
 type LinkStatus = 'pending' | 'resolved' | 'not_found';
 
@@ -34,7 +37,7 @@ function newNoteId(): string {
 
 export const NotesEditor = forwardRef<NotesEditorApi, NotesEditorProps>(
   function NotesEditor(
-    { user, currentNote, canEdit, onSave, onDelete, onResolveLink, onListBacklinks },
+    { user, currentNote, canEdit, onSave, onDelete, onResolveLink, onListBacklinks, imageSearch },
     ref
   ) {
     const [title, setTitle] = useState(currentNote?.title ?? '');
@@ -156,6 +159,17 @@ export const NotesEditor = forwardRef<NotesEditorApi, NotesEditorProps>(
       if (!result.ok) setError(result.error);
     };
 
+    // SEK-04: appends into this editor's own `content` state (not a separate
+    // document) — this is what satisfies "inserted image is embedded in the
+    // note, not just linked" without ImageSearch itself needing to know
+    // anything about note storage.
+    const handleImageInsert = (insert: ImageInsert) => {
+      setContent((current) => {
+        const block = buildImageMarkdown(insert);
+        return current.length === 0 ? block : `${current}\n\n${block}`;
+      });
+    };
+
     return (
       <div className="sek-notes-editor">
         {error && (
@@ -187,6 +201,9 @@ export const NotesEditor = forwardRef<NotesEditorApi, NotesEditorProps>(
               </button>
             )}
           </div>
+        )}
+        {canEdit && imageSearch && (
+          <ImageSearch {...imageSearch} onInsert={handleImageInsert} />
         )}
         <ul className="sek-notes-editor__outgoing-links">
           {outgoingLinks.map((link, i) => (
