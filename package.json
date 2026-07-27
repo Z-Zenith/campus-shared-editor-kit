@@ -1,46 +1,46 @@
 {
   "name": "@campus/shared-editor-kit",
-  "version": "0.1.0",
-  "private": true,
+  "version": "0.2.0",
   "description": "Shared Editor Kit (SEK) — public TypeScript interface consumed by Teacher Web App (TWA) and Student Desktop App (SDA). See docs/Campus platform architecture.md Section 3 (SEK-01..05) and docs/campus-platform-work-division.md Wave 1.",
   "type": "module",
-  "main": "./src/index.ts",
-  "types": "./src/index.ts",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "types": "./src/index.ts",
-      "default": "./src/index.ts"
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
     },
     "./code-editor": {
-      "types": "./src/code-editor/index.ts",
-      "default": "./src/code-editor/index.ts"
+      "types": "./dist/code-editor/index.d.ts",
+      "default": "./dist/code-editor/index.js"
     },
     "./document-viewer": {
-      "types": "./src/document-viewer/index.ts",
-      "default": "./src/document-viewer/index.ts"
+      "types": "./dist/document-viewer/index.d.ts",
+      "default": "./dist/document-viewer/index.js"
     },
     "./notes": {
-      "types": "./src/notes/index.ts",
-      "default": "./src/notes/index.ts"
+      "types": "./dist/notes/index.d.ts",
+      "default": "./dist/notes/index.js"
     },
     "./image-search": {
-      "types": "./src/image-search/index.ts",
-      "default": "./src/image-search/index.ts"
+      "types": "./dist/image-search/index.d.ts",
+      "default": "./dist/image-search/index.js"
     },
     "./types": {
-      "types": "./src/types/common.ts",
-      "default": "./src/types/common.ts"
+      "types": "./dist/types/common.d.ts",
+      "default": "./dist/types/common.js"
     }
   },
   "files": [
-    "src",
+    "dist",
     "README.md"
   ],
   "scripts": {
     "typecheck": "tsc",
     "build": "tsc -p tsconfig.base.json",
     "build:host": "node scripts/build-host.mjs",
-    "test": "tsc && node --test"
+    "test": "tsc && node --test",
+    "prepare": "npm run build"
   },
   "peerDependencies": {
     "react": "^18.0.0 || ^19.0.0"
@@ -61,5 +61,12 @@
     "twa",
     "sda"
   ],
-  "license": "UNLICENSED"
+  "license": "UNLICENSED",
+  "dependencies": {
+    "@monaco-editor/react": "^4.7.0",
+    "monaco-editor": "^0.56.0"
+  },
+  "overrides": {
+    "dompurify": "^3.4.12"
+  }
 }
