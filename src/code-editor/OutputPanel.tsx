@@ -11,23 +11,34 @@
  * interactive shell is out of scope.
  */
 import { useLayoutEffect, useState } from 'react';
-import type { CodeRunResult } from './types.js';
-import type { SekError } from '../types/common.js';
+import type { CodeFile, CodeRunResult, TerminalExecResult } from './types.js';
+import type { Result, SekError } from '../types/common.js';
+import { TerminalPanel } from './TerminalPanel.js';
 
-type PanelTab = 'output' | 'problems';
+type PanelTab = 'output' | 'problems' | 'terminal';
 
 interface OutputPanelProps {
   readonly result: CodeRunResult | null;
   readonly error: SekError | null;
   readonly running: boolean;
+  readonly files: readonly CodeFile[];
+  /** All three optional and only meaningful together — see CodeEditorProps.onTerminalStart. */
+  readonly onTerminalStart?: ((files: readonly CodeFile[]) => Promise<Result<{ sessionId: string }, SekError>>) | undefined;
+  readonly onTerminalExec?: ((sessionId: string, command: string) => Promise<Result<TerminalExecResult, SekError>>) | undefined;
+  readonly onTerminalClose?: ((sessionId: string) => Promise<Result<void, SekError>>) | undefined;
 }
 
-export function OutputPanel({ result, error, running }: OutputPanelProps) {
+export function OutputPanel({ result, error, running, files, onTerminalStart, onTerminalExec, onTerminalClose }: OutputPanelProps) {
   const isProblem =
     result?.status === 'compilation_error' ||
     result?.status === 'internal_error' ||
     (result && !result.status && result.exitCode !== 0);
   const [tab, setTab] = useState<PanelTab>('output');
+  // Once opened, the Terminal tab's panel stays mounted (just hidden) when the student
+  // switches to Output/Problems, so its sandbox session survives tab switches — only
+  // closed on a real unmount (the whole Coding editor going away) or an explicit Restart.
+  const [terminalOpened, setTerminalOpened] = useState(false);
+  const terminalAvailable = Boolean(onTerminalStart && onTerminalExec && onTerminalClose);
 
   // Each new run outcome navigates to the tab that actually has something to show,
   // overriding whatever the student had manually clicked on for the *previous* run —
@@ -68,46 +79,76 @@ export function OutputPanel({ result, error, running }: OutputPanelProps) {
           Problems
           {(isProblem || error) && <span className="sek-code-editor__output-tab-badge">!</span>}
         </button>
+        {terminalAvailable && (
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'terminal'}
+            data-active={activeTab === 'terminal'}
+            className="sek-code-editor__output-tab"
+            onClick={() => {
+              setTerminalOpened(true);
+              setTab('terminal');
+            }}
+          >
+            Terminal
+          </button>
+        )}
       </div>
       <div className="sek-code-editor__output-body">
-        {running && (
-          <div className="sek-code-editor__output-status">
-            <span className="sek-code-editor__spinner" aria-hidden="true" />
-            Running…
-          </div>
-        )}
-        {!running && !result && !error && (
-          <div className="sek-code-editor__output-empty">Run (F5) to see output here.</div>
-        )}
-        {error && (
-          <pre className="sek-code-editor__problems" role="alert">
-            {error.message}
-          </pre>
-        )}
-        {!error && result && activeTab === 'output' && (
+        {activeTab !== 'terminal' && (
           <>
-            <pre className="sek-code-editor__stdout">{result.stdout || '(no output)'}</pre>
-            {result.stderr && !isProblem && <pre className="sek-code-editor__stderr">{result.stderr}</pre>}
-            <div className="sek-code-editor__meta" data-outcome={result.exitCode === 0 ? 'ok' : 'fail'}>
-              <span className="sek-code-editor__meta-icon" aria-hidden="true">
-                {result.exitCode === 0 ? '✓' : '✕'}
-              </span>
-              exit {result.exitCode} · {result.durationMs}ms
-              {result.timedOut ? ' · timed out' : ''}
-            </div>
-          </>
-        )}
-        {!error && result && activeTab === 'problems' && (
-          <>
-            {isProblem ? (
-              <pre className="sek-code-editor__problems">{result.stderr || '(no diagnostic output)'}</pre>
-            ) : (
-              <div className="sek-code-editor__output-empty">No problems.</div>
+            {running && (
+              <div className="sek-code-editor__output-status">
+                <span className="sek-code-editor__spinner" aria-hidden="true" />
+                Running…
+              </div>
             )}
-            <div className="sek-code-editor__meta" data-outcome={isProblem ? 'fail' : 'ok'}>
-              {result.status ?? (result.exitCode === 0 ? 'accepted' : 'runtime_error')}
-            </div>
+            {!running && !result && !error && (
+              <div className="sek-code-editor__output-empty">Run (F5) to see output here.</div>
+            )}
+            {error && (
+              <pre className="sek-code-editor__problems" role="alert">
+                {error.message}
+              </pre>
+            )}
+            {!error && result && activeTab === 'output' && (
+              <>
+                <pre className="sek-code-editor__stdout">{result.stdout || '(no output)'}</pre>
+                {result.stderr && !isProblem && <pre className="sek-code-editor__stderr">{result.stderr}</pre>}
+                <div className="sek-code-editor__meta" data-outcome={result.exitCode === 0 ? 'ok' : 'fail'}>
+                  <span className="sek-code-editor__meta-icon" aria-hidden="true">
+                    {result.exitCode === 0 ? '✓' : '✕'}
+                  </span>
+                  exit {result.exitCode} · {result.durationMs}ms
+                  {result.timedOut ? ' · timed out' : ''}
+                </div>
+              </>
+            )}
+            {!error && result && activeTab === 'problems' && (
+              <>
+                {isProblem ? (
+                  <pre className="sek-code-editor__problems">{result.stderr || '(no diagnostic output)'}</pre>
+                ) : (
+                  <div className="sek-code-editor__output-empty">No problems.</div>
+                )}
+                <div className="sek-code-editor__meta" data-outcome={isProblem ? 'fail' : 'ok'}>
+                  {result.status ?? (result.exitCode === 0 ? 'accepted' : 'runtime_error')}
+                </div>
+              </>
+            )}
           </>
+        )}
+        {terminalAvailable && terminalOpened && (
+          <div className="sek-code-editor__terminal-wrap" hidden={activeTab !== 'terminal'}>
+            <TerminalPanel
+              files={files}
+              onTerminalStart={onTerminalStart!}
+              onTerminalExec={onTerminalExec!}
+              onTerminalClose={onTerminalClose!}
+              active={activeTab === 'terminal'}
+            />
+          </div>
         )}
       </div>
     </div>

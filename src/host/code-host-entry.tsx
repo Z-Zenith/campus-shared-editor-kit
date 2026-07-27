@@ -19,10 +19,10 @@ import './monaco-setup.js';
 import { createElement } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { CodeEditor } from '../code-editor/CodeEditor.js';
-import type { CodeEditorProps, CodeProject, CodeRunResult } from '../code-editor/types.js';
+import type { CodeEditorProps, CodeFile, CodeProject, CodeRunResult, TerminalExecResult } from '../code-editor/types.js';
 import type { Result, SekError, UserContext } from '../types/common.js';
 
-type BridgeMethod = 'run' | 'save';
+type BridgeMethod = 'run' | 'save' | 'terminalStart' | 'terminalExec' | 'terminalClose';
 
 interface HostRequest {
   readonly requestId: string;
@@ -105,6 +105,11 @@ window.__sekHostMount = (json: string) => {
       defaultLanguage: 'python',
       onRun: (project: CodeProject) => callHost<CodeRunResult>('run', { project }),
       onSave: (project: CodeProject) => callHost<CodeProject>('save', { project }),
+      onTerminalStart: (files: readonly CodeFile[]) =>
+        callHost<{ sessionId: string }>('terminalStart', { files }),
+      onTerminalExec: (sessionId: string, command: string) =>
+        callHost<TerminalExecResult>('terminalExec', { sessionId, command }),
+      onTerminalClose: (sessionId: string) => callHost<void>('terminalClose', { sessionId }),
     };
 
     root.render(createElement(CodeEditor, props));

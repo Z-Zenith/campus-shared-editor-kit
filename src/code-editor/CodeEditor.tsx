@@ -65,7 +65,19 @@ function newProjectDraftId(): string {
 
 export const CodeEditor = forwardRef<CodeEditorApi, CodeEditorProps>(
   function CodeEditor(
-    { initialProject, defaultLanguage, canRun, canEdit, onRun, onSave, onProjectChange, theme },
+    {
+      initialProject,
+      defaultLanguage,
+      canRun,
+      canEdit,
+      onRun,
+      onSave,
+      onProjectChange,
+      theme,
+      onTerminalStart,
+      onTerminalExec,
+      onTerminalClose,
+    },
     ref
   ) {
     const fallbackLanguage: Language =
@@ -449,7 +461,15 @@ export const CodeEditor = forwardRef<CodeEditorApi, CodeEditorProps>(
                 )}
               </div>
             )}
-            <OutputPanel result={result} error={running ? null : error} running={running} />
+            <OutputPanel
+              result={result}
+              error={running ? null : error}
+              running={running}
+              files={files}
+              onTerminalStart={onTerminalStart}
+              onTerminalExec={onTerminalExec}
+              onTerminalClose={onTerminalClose}
+            />
           </div>
         </div>
       </div>

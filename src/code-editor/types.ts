@@ -163,6 +163,17 @@ export interface CodeRunResult {
 }
 
 /**
+ * Result of one command in the integrated terminal (SEK-01 follow-up). Deliberately
+ * request/response, matching CodeRunResult's own batch shape — see TerminalPanel.tsx's
+ * doc comment for why this is not a live pty-backed shell.
+ */
+export interface TerminalExecResult {
+  readonly stdout: string;
+  readonly stderr: string;
+  readonly exitCode: number;
+}
+
+/**
  * Props the embedder (TWA, SDA) passes to the SEK code-editor component.
  *
  * Callbacks are supplied by the embedder — SEK is purely presentational +
@@ -196,6 +207,18 @@ export interface CodeEditorProps {
   readonly onProjectChange?: (project: CodeProject) => void;
   /** Optional theme override. Defaults to the embedder's design system. */
   readonly theme?: 'light' | 'dark' | 'system';
+  /**
+   * Integrated terminal (SEK-01 follow-up) — all three optional and only meaningful
+   * together; the Terminal tab is hidden entirely unless all three are supplied (mirrors
+   * onSave's optional-hides-the-button convention). Materializes the project's files
+   * (as of session start — not live-synced from Monaco edits) into a workspace-mounted
+   * sandbox container and runs one command at a time against it. See
+   * TerminalPanel.tsx's doc comment for the full request/response-not-a-live-shell
+   * rationale.
+   */
+  readonly onTerminalStart?: (files: readonly CodeFile[]) => Promise<Result<{ sessionId: string }, SekError>>;
+  readonly onTerminalExec?: (sessionId: string, command: string) => Promise<Result<TerminalExecResult, SekError>>;
+  readonly onTerminalClose?: (sessionId: string) => Promise<Result<void, SekError>>;
 }
 
 /**

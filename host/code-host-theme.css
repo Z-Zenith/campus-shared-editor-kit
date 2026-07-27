@@ -207,6 +207,26 @@
   border-color: #be1100;
 }
 
+.sek-code-editor[data-theme="dark"] .sek-code-editor__terminal-entry--command {
+  color: #cccccc;
+}
+
+.sek-code-editor[data-theme="dark"] .sek-code-editor__terminal-entry--output {
+  color: #cccccc;
+}
+
+.sek-code-editor[data-theme="dark"] .sek-code-editor__terminal-entry--error {
+  color: #f48771;
+}
+
+.sek-code-editor[data-theme="dark"] .sek-code-editor__terminal-input {
+  color: #cccccc;
+}
+
+.sek-code-editor[data-theme="dark"] .sek-code-editor__terminal-restart:hover:not(:disabled) {
+  background: #ffffff1a;
+}
+
 /* Light theme: close to VS Code's default Light+ palette. */
 .sek-code-editor[data-theme="light"] {
   background: #ffffff;
@@ -382,4 +402,24 @@
   background: #fdedec;
   color: #a31515;
   border-color: #c0392b;
+}
+
+.sek-code-editor[data-theme="light"] .sek-code-editor__terminal-entry--command {
+  color: #1e1e1e;
+}
+
+.sek-code-editor[data-theme="light"] .sek-code-editor__terminal-entry--output {
+  color: #1e1e1e;
+}
+
+.sek-code-editor[data-theme="light"] .sek-code-editor__terminal-entry--error {
+  color: #a31515;
+}
+
+.sek-code-editor[data-theme="light"] .sek-code-editor__terminal-input {
+  color: #1e1e1e;
+}
+
+.sek-code-editor[data-theme="light"] .sek-code-editor__terminal-restart:hover:not(:disabled) {
+  background: #0000001a;
 }
