@@ -5,7 +5,7 @@
  * mirroring notes/linkExtraction.ts.
  */
 
-import type { CodeSource, Language } from './types.js';
+import type { CodeFile, CodeProject, Language } from './types.js';
 import type { SekError } from '../types/common.js';
 
 // Deliberately not imported from types.ts's LANGUAGE_LABELS: this module is
@@ -48,7 +48,7 @@ export function isSupportedLanguage(language: string): language is Language {
 /**
  * Canonical error for a language outside the launch list. Centralized here
  * (rather than built ad hoc at each call site) so the message/code pairing
- * can't drift between the component's Run path and its loadSource path.
+ * can't drift between the component's Run path and its loadProject path.
  */
 export function unsupportedLanguageError(language: string): SekError {
   return {
@@ -57,23 +57,99 @@ export function unsupportedLanguageError(language: string): SekError {
   };
 }
 
+/** Extension (including the dot, case-insensitive) -> Language, for the "new file" flow. */
+const EXTENSION_LANGUAGE_MAP: Readonly<Record<string, Language>> = {
+  '.c': 'c',
+  '.h': 'c',
+  '.cpp': 'cpp',
+  '.cc': 'cpp',
+  '.cxx': 'cpp',
+  '.hpp': 'cpp',
+  '.py': 'python',
+  '.java': 'java',
+  '.cs': 'dotnet',
+  '.html': 'html',
+  '.htm': 'html',
+  '.css': 'css',
+  '.js': 'javascript',
+  '.mjs': 'javascript',
+  '.cjs': 'javascript',
+  '.ts': 'typescript',
+  '.sql': 'sql',
+  '.json': 'json',
+  '.yaml': 'yaml',
+  '.yml': 'yaml',
+};
+
 /**
- * Builds a `CodeSource` without ever assigning `undefined` to an optional
- * field — this package compiles with `exactOptionalPropertyTypes`, under
- * which `{ stdin: undefined }` is a type error for an `stdin?: string` field.
- * Omitting the key entirely (rather than setting it to `undefined`) is the
- * only valid way to represent "no stdin provided".
+ * Infers a Language from a filename's extension, for pre-selecting the "new
+ * file" language picker from what the student typed (e.g. "helper.py" ->
+ * python). Returns null for an unrecognised/missing extension — callers
+ * should fall back to the project's current default rather than guessing.
+ * `.js`/`.mjs`/`.cjs` all map to 'javascript' rather than 'nodejs': the
+ * distinction between those two Language values is about the *runner*
+ * (browser-ish JS vs. Node.js), not something inferable from a filename.
  */
-export function buildCodeSource(
-  language: Language,
-  content: string,
-  stdin: string,
-  filename?: string
-): CodeSource {
+export function inferLanguageFromExtension(filename: string): Language | null {
+  const dotIndex = filename.lastIndexOf('.');
+  if (dotIndex < 0) return null;
+  const ext = filename.slice(dotIndex).toLowerCase();
+  return EXTENSION_LANGUAGE_MAP[ext] ?? null;
+}
+
+/**
+ * Validates a CodeProject's internal consistency: every file's language must
+ * be supported, entryFilePath/activeFilePath must each name a file actually
+ * present in `files`, and no two files may share a path. Returns the first
+ * violation found (as a SekError), or null when the project is valid. This is
+ * the multi-file equivalent of the old single-language guard — called once
+ * per project (at load and at run/save time) rather than once per file, so
+ * the "clear error, not a silent failure" acceptance criterion holds for the
+ * whole project, not just one buffer.
+ */
+export function validateProject(project: CodeProject): SekError | null {
+  if (project.files.length === 0) {
+    return { code: 'validation_error', message: 'A project must have at least one file.' };
+  }
+
+  const seenPaths = new Set<string>();
+  for (const file of project.files) {
+    if (seenPaths.has(file.path)) {
+      return { code: 'validation_error', message: `Duplicate file path "${file.path}".` };
+    }
+    seenPaths.add(file.path);
+
+    if (!isSupportedLanguage(file.language)) {
+      return unsupportedLanguageError(file.language);
+    }
+  }
+
+  if (!seenPaths.has(project.entryFilePath)) {
+    return {
+      code: 'validation_error',
+      message: `Entry file "${project.entryFilePath}" is not one of the project's files.`,
+    };
+  }
+  if (!seenPaths.has(project.activeFilePath)) {
+    return {
+      code: 'validation_error',
+      message: `Active file "${project.activeFilePath}" is not one of the project's files.`,
+    };
+  }
+
+  return null;
+}
+
+/**
+ * Builds a single-file starter CodeProject, e.g. for a brand-new blank
+ * project or the "unsupported language" fallback in CodeEditor.tsx.
+ */
+export function buildStarterProject(language: Language, filename: string, content = ''): CodeProject {
+  const file: CodeFile = { path: filename, language, content };
   return {
-    language,
-    content,
-    ...(stdin ? { stdin } : {}),
-    ...(filename ? { filename } : {}),
+    name: 'Untitled project',
+    files: [file],
+    entryFilePath: filename,
+    activeFilePath: filename,
   };
 }

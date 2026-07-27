@@ -46,11 +46,18 @@ export interface DocumentDescriptor {
   readonly ocrStatus?: OcrStatus;
 }
 
-/** Annotation is PDF-only per the spec. Other doc types are view-only. */
+/**
+ * Annotation is PDF-only per the spec.
+ *
+ * ShapeAnnotation is SEK-05 ("Inking with basic block diagrams", promoted
+ * from Won't — spec: "Extend ink annotation with Paint-style basic
+ * shapes/block-diagram drawing"). Other doc types are view-only.
+ */
 export type Annotation =
   | HighlightAnnotation
   | TextBoxAnnotation
-  | InkAnnotation;
+  | InkAnnotation
+  | ShapeAnnotation;
 
 /** Coordinates use the PDF's intrinsic coordinate space (0..1 normalized). */
 interface NormalizedRect {
@@ -58,6 +65,18 @@ interface NormalizedRect {
   readonly y: number;
   readonly width: number;
   readonly height: number;
+}
+
+/**
+ * A single 0..1 normalized page-space coordinate. Structurally identical to
+ * document-viewer/geometry.ts's own `Point` — duplicated locally the same
+ * way `NormalizedRect` above is, so this public contract file doesn't
+ * import an internal implementation-detail module (see geometry.ts's and
+ * document-viewer/index.ts's comments on why that split exists).
+ */
+interface Point {
+  readonly x: number;
+  readonly y: number;
 }
 
 export interface HighlightAnnotation {
@@ -91,6 +110,26 @@ export interface InkAnnotation {
   readonly page: number;
   /** Vector stroke list — diagrams (SEK-05) reuse the same vector primitive. */
   readonly strokes: ReadonlyArray<InkStroke>;
+  readonly createdAt: string;
+  readonly createdBy: string;
+}
+
+/**
+ * SEK-05 — a diagram-mode shape drawn in "diagram-ink mode": rectangle,
+ * arrow, or line. Unlike `InkAnnotation`'s freehand `strokes` (a raster-ish
+ * point list), a shape is stored as just its two defining vector points —
+ * "stored as vector shapes (not raster ink) so they can be resized later"
+ * per the spec — so a resize is just moving `start`/`end`, not re-drawing.
+ * `start`/`end` are in the same normalized 0..1 page space as every other
+ * Annotation kind (see `NormalizedRect` above and `InkStroke.points`).
+ */
+export interface ShapeAnnotation {
+  readonly kind: 'shape';
+  readonly id: string;
+  readonly page: number;
+  readonly shapeType: 'rectangle' | 'arrow' | 'line';
+  readonly start: Point;
+  readonly end: Point;
   readonly createdAt: string;
   readonly createdBy: string;
 }

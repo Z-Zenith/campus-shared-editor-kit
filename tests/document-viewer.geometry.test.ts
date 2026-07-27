@@ -13,6 +13,7 @@ import {
   isRectSizable,
   isStrokeSizable,
   rectFromPoints,
+  snapToGrid,
 } from '../src/document-viewer/geometry.ts';
 
 test('clamp01 leaves in-range values untouched', () => {
@@ -81,4 +82,41 @@ test('isStrokeSizable rejects duplicate-point jitter (pointer taps that still fi
 test('isStrokeSizable accepts many points that never individually move far but drift past the threshold', () => {
   const points = Array.from({ length: 5 }, (_, i) => ({ x: 0.5 + i * 0.005, y: 0.5 }));
   assert.equal(isStrokeSizable(points), true);
+});
+
+// ---- snapToGrid (SEK-05 — diagram-mode shapes snap on commit) ----
+
+test('snapToGrid snaps a point down to the nearest grid line', () => {
+  const snapped = snapToGrid({ x: 0.137, y: 0.264 }, 0.02);
+  assert.ok(Math.abs(snapped.x - 0.14) < 1e-9, `expected ~0.14, got ${snapped.x}`);
+  assert.ok(Math.abs(snapped.y - 0.26) < 1e-9, `expected ~0.26, got ${snapped.y}`);
+});
+
+test('snapToGrid rounds to the nearest grid line, not just down', () => {
+  // 0.03 sits exactly halfway between the 0.02 and 0.04 grid lines when the
+  // grid size is 0.02 — Math.round's "round half up" behavior should pick 0.04.
+  const snapped = snapToGrid({ x: 0.03, y: 0.03 }, 0.02);
+  assert.ok(Math.abs(snapped.x - 0.04) < 1e-9, `expected ~0.04, got ${snapped.x}`);
+});
+
+test('snapToGrid leaves a point already on the grid untouched', () => {
+  const snapped = snapToGrid({ x: 0.4, y: 0.6 }, 0.02);
+  assert.ok(Math.abs(snapped.x - 0.4) < 1e-9);
+  assert.ok(Math.abs(snapped.y - 0.6) < 1e-9);
+});
+
+test('snapToGrid collapses two nearby points to the same grid intersection', () => {
+  // Simulates a near-zero-size drag that should read as degenerate once
+  // snapped, even though the raw start/end weren't identical.
+  const a = snapToGrid({ x: 0.201, y: 0.201 }, 0.02);
+  const b = snapToGrid({ x: 0.205, y: 0.205 }, 0.02);
+  assert.deepEqual(a, b);
+});
+
+test('snapToGrid re-clamps into 0..1 when rounding would overshoot', () => {
+  // 1 / 0.6 = 1.667, which rounds up to 2 grid steps (1.2) — outside 0..1
+  // without the clamp01 safety net.
+  const snapped = snapToGrid({ x: 1, y: 1 }, 0.6);
+  assert.equal(snapped.x, 1);
+  assert.equal(snapped.y, 1);
 });

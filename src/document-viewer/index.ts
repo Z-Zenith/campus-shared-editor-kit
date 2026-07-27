@@ -9,6 +9,7 @@ export type {
   HighlightAnnotation,
   TextBoxAnnotation,
   InkAnnotation,
+  ShapeAnnotation,
   OcrPageResult,
   DocumentViewerProps,
   DocumentViewerApi,
