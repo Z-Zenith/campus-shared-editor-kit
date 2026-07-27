@@ -28,6 +28,7 @@ import type {
   HighlightAnnotation,
   InkAnnotation,
   OcrPageResult,
+  ShapeAnnotation,
   TextBoxAnnotation,
 } from './types.js';
 import {
@@ -35,19 +36,40 @@ import {
   isRectSizable,
   isStrokeSizable,
   rectFromPoints,
+  snapToGrid,
   type NormalizedRect,
   type Point,
 } from './geometry.js';
 
-type Tool = 'highlight' | 'textBox' | 'ink';
+type Tool = 'highlight' | 'textBox' | 'ink' | 'rectangle' | 'arrow' | 'line';
+
+// The 3 diagram-ink-mode shape tools, as a set for cheap "is this tool one of
+// the shape tools" checks (e.g. deciding whether to drop the active tool when
+// diagram-ink mode is switched off).
+const SHAPE_TOOLS: ReadonlySet<Tool> = new Set(['rectangle', 'arrow', 'line']);
 
 type Draft =
-  | { readonly kind: 'highlight' | 'textBox'; readonly start: Point; readonly current: Point }
+  | {
+      readonly kind: 'highlight' | 'textBox' | 'rectangle' | 'arrow' | 'line';
+      readonly start: Point;
+      readonly current: Point;
+    }
   | { readonly kind: 'ink'; readonly points: ReadonlyArray<Point> };
 
 const HIGHLIGHT_COLOR = '#FFEB3B';
 const INK_COLOR = '#1E88E5';
 const INK_WIDTH = 2; // CSS pixels at 1x zoom — see InkStroke.width in types/common.ts
+// SEK-05 — diagram-mode shapes share the ink color (they're the "diagram-ink
+// mode" extension of ink annotation, not a separate visual language).
+const SHAPE_COLOR = INK_COLOR;
+// SEK-05 — 0..1 viewBox units (see INK_WIDTH above for this overlay's
+// coordinate-space convention). Shapes snap both endpoints to the nearest
+// multiple of this on commit, giving a "light" background grid feel rather
+// than a hard constraint on the drag itself — 0.02 is 50 lines across the
+// page, fine enough not to fight a deliberately-drawn shape, coarse enough
+// to visibly align rectangle/arrow/line corners to each other.
+const GRID_SIZE = 0.02;
+const ARROWHEAD_MARKER_ID = 'sek-document-viewer-arrowhead';
 const FALLBACK_SURFACE_WIDTH_PX = 800; // used only until the surface is first measured
 
 // Record<DocumentType, true> forces this to have exactly one key per
@@ -73,6 +95,11 @@ export const DocumentViewer = forwardRef<DocumentViewerApi, DocumentViewerProps>
     const [page, setPage] = useState(1);
     const [annotations, setAnnotations] = useState<ReadonlyArray<Annotation>>(initialAnnotations);
     const [activeTool, setActiveTool] = useState<Tool | null>(null);
+    // SEK-05 — opt-in "diagram-ink mode": per the feature's EARS wording
+    // ("Where diagram-ink mode is enabled...") the 3 shape tools are gated
+    // behind this toggle rather than always sitting alongside
+    // highlight/textBox/ink.
+    const [diagramInkMode, setDiagramInkMode] = useState(false);
     const [draft, setDraft] = useState<Draft | null>(null);
     // Captures the page a text box was drafted on, alongside its rect — the
     // confirm step can run after the user has navigated to a different page
@@ -110,6 +137,7 @@ export const DocumentViewer = forwardRef<DocumentViewerApi, DocumentViewerProps>
       setPage(1);
       setAnnotations(initialAnnotations);
       setActiveTool(null);
+      setDiagramInkMode(false);
       setDraft(null);
       setPendingTextBox(null);
       setEditingTextBoxId(null);
@@ -236,6 +264,34 @@ export const DocumentViewer = forwardRef<DocumentViewerApi, DocumentViewerProps>
             id: newAnnotationId(),
             page,
             strokes: [{ color: INK_COLOR, width: INK_WIDTH, points: draft.points }],
+            createdAt: new Date().toISOString(),
+            createdBy: user.userId,
+          };
+          void commitChange({ op: 'create', annotation });
+        }
+        setDraft(null);
+        return;
+      }
+
+      if (draft.kind === 'rectangle' || draft.kind === 'arrow' || draft.kind === 'line') {
+        // Snap on commit, not while dragging — see GRID_SIZE's comment.
+        const start = snapToGrid(draft.start, GRID_SIZE);
+        const end = snapToGrid(draft.current, GRID_SIZE);
+        // Rectangle sizability reuses the highlight rule (both dimensions
+        // must clear the threshold, rejecting slivers); arrow/line only
+        // care about end-to-end length, so they reuse the ink-stroke rule.
+        const sizable =
+          draft.kind === 'rectangle'
+            ? isRectSizable(rectFromPoints(start, end))
+            : isStrokeSizable([start, end]);
+        if (sizable) {
+          const annotation: ShapeAnnotation = {
+            kind: 'shape',
+            id: newAnnotationId(),
+            page,
+            shapeType: draft.kind,
+            start,
+            end,
             createdAt: new Date().toISOString(),
             createdBy: user.userId,
           };
@@ -385,9 +441,41 @@ export const DocumentViewer = forwardRef<DocumentViewerApi, DocumentViewerProps>
                   aria-pressed={activeTool === tool}
                   onClick={() => setActiveTool((t) => (t === tool ? null : tool))}
                 >
-                  {tool === 'highlight' ? 'Highlight' : tool === 'textBox' ? 'Text box' : 'Ink'}
+                  {toolLabel(tool)}
                 </button>
               ))}
+
+              {/* SEK-05 — opt-in toggle; the 3 shape-tool buttons below only
+                  render "Where diagram-ink mode is enabled" per the spec. */}
+              <label className="sek-document-viewer__diagram-toggle">
+                <input
+                  type="checkbox"
+                  checked={diagramInkMode}
+                  onChange={(e) => {
+                    const enabled = e.target.checked;
+                    setDiagramInkMode(enabled);
+                    // A shape tool left active after its button disappears
+                    // would have no way to be turned off again — fall back
+                    // to no active tool instead.
+                    if (!enabled && activeTool && SHAPE_TOOLS.has(activeTool)) {
+                      setActiveTool(null);
+                    }
+                  }}
+                />
+                Diagram-ink mode
+              </label>
+
+              {diagramInkMode &&
+                (['rectangle', 'arrow', 'line'] as const).map((tool) => (
+                  <button
+                    key={tool}
+                    type="button"
+                    aria-pressed={activeTool === tool}
+                    onClick={() => setActiveTool((t) => (t === tool ? null : tool))}
+                  >
+                    {toolLabel(tool)}
+                  </button>
+                ))}
             </div>
           )}
 
@@ -426,6 +514,24 @@ export const DocumentViewer = forwardRef<DocumentViewerApi, DocumentViewerProps>
               preserveAspectRatio="none"
               aria-hidden="true"
             >
+              {/* Defined once, unconditionally — harmless (and unrendered)
+                  when no arrow annotation references it. Sized off GRID_SIZE
+                  so the arrowhead reads as roughly one grid cell, matching
+                  the "light grid" scale shapes snap to. */}
+              <defs>
+                <marker
+                  id={ARROWHEAD_MARKER_ID}
+                  viewBox="0 0 10 10"
+                  refX="8"
+                  refY="5"
+                  markerWidth={GRID_SIZE}
+                  markerHeight={GRID_SIZE}
+                  markerUnits="userSpaceOnUse"
+                  orient="auto"
+                >
+                  <path d="M0,0 L10,5 L0,10 Z" fill={SHAPE_COLOR} />
+                </marker>
+              </defs>
               {pageAnnotations.map((a) => {
                 if (a.kind === 'highlight') {
                   return (
@@ -451,6 +557,31 @@ export const DocumentViewer = forwardRef<DocumentViewerApi, DocumentViewerProps>
                     />
                   ));
                 }
+                if (a.kind === 'shape') {
+                  if (a.shapeType === 'rectangle') {
+                    return (
+                      <rect
+                        key={a.id}
+                        {...rectFromPoints(a.start, a.end)}
+                        fill="none"
+                        stroke={SHAPE_COLOR}
+                        strokeWidth={INK_WIDTH / surfaceWidthPx}
+                      />
+                    );
+                  }
+                  return (
+                    <line
+                      key={a.id}
+                      x1={a.start.x}
+                      y1={a.start.y}
+                      x2={a.end.x}
+                      y2={a.end.y}
+                      stroke={SHAPE_COLOR}
+                      strokeWidth={INK_WIDTH / surfaceWidthPx}
+                      markerEnd={a.shapeType === 'arrow' ? `url(#${ARROWHEAD_MARKER_ID})` : undefined}
+                    />
+                  );
+                }
                 return null;
               })}
               {draft?.kind === 'highlight' && (
@@ -470,6 +601,27 @@ export const DocumentViewer = forwardRef<DocumentViewerApi, DocumentViewerProps>
                   stroke={INK_COLOR}
                   strokeWidth={INK_WIDTH / surfaceWidthPx}
                   fill="none"
+                />
+              )}
+              {draft?.kind === 'rectangle' && (
+                <rect
+                  {...rectFromPoints(draft.start, draft.current)}
+                  fill="none"
+                  stroke={SHAPE_COLOR}
+                  strokeWidth={INK_WIDTH / surfaceWidthPx}
+                  strokeDasharray="0.01"
+                />
+              )}
+              {(draft?.kind === 'arrow' || draft?.kind === 'line') && (
+                <line
+                  x1={draft.start.x}
+                  y1={draft.start.y}
+                  x2={draft.current.x}
+                  y2={draft.current.y}
+                  stroke={SHAPE_COLOR}
+                  strokeWidth={INK_WIDTH / surfaceWidthPx}
+                  strokeDasharray="0.01"
+                  markerEnd={draft.kind === 'arrow' ? `url(#${ARROWHEAD_MARKER_ID})` : undefined}
                 />
               )}
             </svg>
@@ -513,6 +665,7 @@ export const DocumentViewer = forwardRef<DocumentViewerApi, DocumentViewerProps>
                       {a.kind === 'highlight' && (a.note ? `Highlight: ${a.note}` : 'Highlight')}
                       {a.kind === 'textBox' && a.text}
                       {a.kind === 'ink' && 'Ink stroke'}
+                      {a.kind === 'shape' && `${toolLabel(a.shapeType)} shape`}
                     </span>
                     {canAnnotatePdf && a.kind === 'textBox' && !editingTextBoxId && (
                       <button type="button" onClick={() => startEditingTextBox(a)}>
@@ -541,6 +694,26 @@ export const DocumentViewer = forwardRef<DocumentViewerApi, DocumentViewerProps>
     );
   }
 );
+
+// Exhaustive over Tool (and reused for ShapeAnnotation.shapeType, a subset
+// of it) — a switch with no default so a new Tool literal fails to compile
+// here instead of silently falling through to a blank button label.
+function toolLabel(tool: Tool | ShapeAnnotation['shapeType']): string {
+  switch (tool) {
+    case 'highlight':
+      return 'Highlight';
+    case 'textBox':
+      return 'Text box';
+    case 'ink':
+      return 'Ink';
+    case 'rectangle':
+      return 'Rectangle';
+    case 'arrow':
+      return 'Arrow';
+    case 'line':
+      return 'Line';
+  }
+}
 
 function clampPage(target: number, pageCount: number | undefined): number {
   // A pageCount of 0 (or negative) is treated the same as "unknown" rather

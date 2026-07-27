@@ -3,7 +3,8 @@
  */
 export type {
   Language,
-  CodeSource,
+  CodeFile,
+  CodeProject,
   CodeRunResult,
   CodeEditorProps,
   CodeEditorApi,
@@ -11,4 +12,10 @@ export type {
 
 export { LANGUAGE_LABELS } from './types.js';
 export { CodeEditor } from './CodeEditor.js';
-export { isSupportedLanguage, unsupportedLanguageError } from './logic.js';
+export {
+  isSupportedLanguage,
+  unsupportedLanguageError,
+  inferLanguageFromExtension,
+  validateProject,
+  buildStarterProject,
+} from './logic.js';

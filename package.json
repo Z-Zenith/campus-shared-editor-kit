@@ -1,6 +1,6 @@
 {
   "name": "@campus/shared-editor-kit",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Shared Editor Kit (SEK) — public TypeScript interface consumed by Teacher Web App (TWA) and Student Desktop App (SDA). See docs/Campus platform architecture.md Section 3 (SEK-01..05) and docs/campus-platform-work-division.md Wave 1.",
   "type": "module",
   "main": "./dist/index.js",
@@ -62,5 +62,12 @@
     "twa",
     "sda"
   ],
-  "license": "UNLICENSED"
+  "license": "UNLICENSED",
+  "dependencies": {
+    "@monaco-editor/react": "^4.7.0",
+    "monaco-editor": "^0.56.0"
+  },
+  "overrides": {
+    "dompurify": "^3.4.12"
+  }
 }
