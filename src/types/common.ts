@@ -59,8 +59,11 @@ export type DeleteCallback = (id: string) => Promise<Result<void>>;
 
 /**
  * One stroke is a sequence of points in normalized 0..1 page space. Lives
- * here (not in document-viewer) because SEK-05 (inking w/ diagrams) will
- * reuse this same vector primitive when it's promoted from Won't.
+ * here (not in document-viewer) because SEK-05 (inking w/ diagrams, now
+ * implemented) reuses this same normalized-point coordinate primitive for
+ * its ShapeAnnotation start/end fields (document-viewer/types.ts) — shapes
+ * store just the two defining points rather than a full InkStroke, since
+ * they're vector shapes, not freehand strokes.
  */
 export interface InkStroke {
   readonly color: string;

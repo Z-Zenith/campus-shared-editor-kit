@@ -6,89 +6,127 @@
  * no styling opinions, the embedder (TWA, SDA) skins it. SEK does not call
  * the Code Execution Service itself; every run goes through the embedder's
  * `onRun` callback (see CodeEditorProps.onRun doc comment).
+ *
+ * Powered by Monaco (the same editor engine VS Code itself uses) via
+ * @monaco-editor/react, which keys its internal model cache by the `path`
+ * prop — switching the active file tab reuses (rather than recreates) that
+ * file's model, preserving undo history/scroll/cursor per open file for
+ * free. The embedder is responsible for pointing @monaco-editor/react's
+ * loader at a locally-bundled Monaco instance instead of its default CDN
+ * loader (see src/host/monaco-setup.ts) — this component itself doesn't care
+ * where Monaco's assets come from.
  */
 
-import { forwardRef, useImperativeHandle, useRef, useState } from 'react';
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
+import Editor, { type OnMount } from '@monaco-editor/react';
 import type { Result, SekError } from '../types/common.js';
-import type {
-  CodeEditorApi,
-  CodeEditorProps,
-  CodeRunResult,
-  CodeSource,
-  Language,
-} from './types.js';
+import type { CodeEditorApi, CodeEditorProps, CodeFile, CodeProject, CodeRunResult, Language } from './types.js';
 import { LANGUAGE_LABELS } from './types.js';
-import { buildCodeSource, isSupportedLanguage, unsupportedLanguageError } from './logic.js';
+import { buildStarterProject, inferLanguageFromExtension, isSupportedLanguage, validateProject } from './logic.js';
+import { FileExplorer } from './FileExplorer.js';
+import { FileTabs } from './FileTabs.js';
+import { OutputPanel } from './OutputPanel.js';
 
-// Pure function of a module-level constant — computed once, not per instance/mount.
-const LANGUAGE_OPTIONS = Object.keys(LANGUAGE_LABELS) as Language[];
+/** Our closed Language union -> Monaco's built-in language id (Monarch tokenizer). */
+const MONACO_LANGUAGE_IDS: Readonly<Record<Language, string>> = {
+  c: 'c',
+  cpp: 'cpp',
+  python: 'python',
+  java: 'java',
+  dotnet: 'csharp',
+  html: 'html',
+  css: 'css',
+  javascript: 'javascript',
+  typescript: 'typescript',
+  nodejs: 'javascript',
+  sql: 'sql',
+  json: 'json',
+  yaml: 'yaml',
+};
+
+function newProjectDraftId(): string {
+  // crypto.randomUUID is available in every embedder runtime we target
+  // (browsers, Node 19+, and Avalonia's WebView2/CEF host) — mirrors
+  // NotesEditor's newNoteId helper.
+  return globalThis.crypto.randomUUID();
+}
 
 export const CodeEditor = forwardRef<CodeEditorApi, CodeEditorProps>(
   function CodeEditor(
-    { initialSource, defaultLanguage, canRun, canEdit, onRun, onSourceChange, theme },
+    { initialProject, defaultLanguage, canRun, canEdit, onRun, onSave, onProjectChange, theme },
     ref
   ) {
     const fallbackLanguage: Language =
       defaultLanguage && isSupportedLanguage(defaultLanguage) ? defaultLanguage : 'python';
 
-    // If the persisted source's language isn't in the launch list, don't load
-    // its content under the fallback language either — content authored in an
-    // unsupported language isn't valid source for whatever we'd fall back to,
-    // and silently pairing them would mislabel the source on the next
-    // getSource()/autosave. Only the error banner survives; the editor starts
-    // blank in the fallback language instead.
-    const validInitialSource =
-      initialSource && isSupportedLanguage(initialSource.language) ? initialSource : undefined;
+    // Same "don't silently mislabel content under a fallback language"
+    // reasoning as the pre-0.2.0 single-file editor, applied per-file: a
+    // project persisted with a since-retired language is rejected wholesale
+    // (not partially loaded) so entry/active-path invariants can't desync
+    // from a half-applied project.
+    const initialValidationError = initialProject ? validateProject(initialProject) : null;
+    const startingProject: CodeProject =
+      initialProject && !initialValidationError
+        ? initialProject
+        : buildStarterProject(fallbackLanguage, `main.${fallbackLanguage === 'python' ? 'py' : 'txt'}`);
 
-    const [language, setLanguage] = useState<Language>(
-      validInitialSource?.language ?? fallbackLanguage
-    );
-    const [content, setContent] = useState(validInitialSource?.content ?? '');
-    const [stdin, setStdin] = useState(validInitialSource?.stdin ?? '');
-    const [filename, setFilename] = useState(validInitialSource?.filename);
+    const [projectId, setProjectId] = useState(startingProject.id);
+    const [projectName, setProjectName] = useState(startingProject.name);
+    const [files, setFiles] = useState<readonly CodeFile[]>(startingProject.files);
+    const [entryFilePath, setEntryFilePath] = useState(startingProject.entryFilePath);
+    const [activeFilePath, setActiveFilePath] = useState(startingProject.activeFilePath);
+    const [stdin, setStdin] = useState(startingProject.stdin ?? '');
     const [result, setResult] = useState<CodeRunResult | null>(null);
     const [running, setRunning] = useState(false);
-    const [error, setError] = useState<SekError | null>(
-      initialSource && !validInitialSource
-        ? unsupportedLanguageError(initialSource.language)
-        : null
+    const [saving, setSaving] = useState(false);
+    const [error, setError] = useState<SekError | null>(initialValidationError);
+    const [newFileDraft, setNewFileDraft] = useState<string | null>(null);
+
+    const activeFile = files.find((f) => f.path === activeFilePath) ?? files[0];
+
+    const currentProject = useMemo<CodeProject>(
+      () => ({
+        ...(projectId ? { id: projectId } : {}),
+        name: projectName,
+        files,
+        entryFilePath,
+        activeFilePath,
+        ...(stdin ? { stdin } : {}),
+      }),
+      [projectId, projectName, files, entryFilePath, activeFilePath, stdin]
     );
 
-    // Imperative-handle methods close over stale state without this — keep a
-    // ref mirroring the latest draft so getSource()/run() are always current
-    // even though the handle object identity is stable (same pattern as
-    // NotesEditor's contentRef).
-    const sourceRef = useRef<CodeSource>(buildCodeSource(language, content, stdin, filename));
-    sourceRef.current = buildCodeSource(language, content, stdin, filename);
+    // Imperative-handle methods (and the keybinding handlers registered in
+    // handleEditorMount) close over stale state without this — same "ref
+    // mirrors latest draft" pattern as the pre-0.2.0 editor's sourceRef and
+    // NotesEditor's contentRef.
+    const projectRef = useRef(currentProject);
+    projectRef.current = currentProject;
+    const onRunRef = useRef(onRun);
+    onRunRef.current = onRun;
+    const onSaveRef = useRef(onSave);
+    onSaveRef.current = onSave;
+    const canRunRef = useRef(canRun);
+    canRunRef.current = canRun;
 
-    // Shared by runSource and the imperative loadSource() so the "reject an
-    // unsupported language" behavior can't drift between the two call sites.
-    // Returns the error (and records it in state) when rejected, else null.
-    const rejectUnsupportedLanguage = (candidate: string): SekError | null => {
-      if (isSupportedLanguage(candidate)) return null;
-      const err = unsupportedLanguageError(candidate);
-      setError(err);
-      return err;
-    };
+    const notifyProjectChange = (project: CodeProject) => onProjectChange?.(project);
 
-    const runSource = async (
-      source: CodeSource
-    ): Promise<Result<CodeRunResult, SekError>> => {
-      const languageErr = rejectUnsupportedLanguage(source.language);
-      if (languageErr) return { ok: false, error: languageErr };
+    const runProject = useCallback(async (project: CodeProject): Promise<Result<CodeRunResult, SekError>> => {
+      const validationErr = validateProject(project);
+      if (validationErr) {
+        setError(validationErr);
+        return { ok: false, error: validationErr };
+      }
 
-      if (!canRun) {
-        const err: SekError = {
-          code: 'unauthorized',
-          message: 'You are not allowed to run code.',
-        };
+      if (!canRunRef.current) {
+        const err: SekError = { code: 'unauthorized', message: 'You are not allowed to run code.' };
         setError(err);
         return { ok: false, error: err };
       }
 
       setRunning(true);
       setError(null);
-      const outcome = await onRun(source);
+      const outcome = await onRunRef.current(project);
       setRunning(false);
 
       if (outcome.ok) {
@@ -98,112 +136,224 @@ export const CodeEditor = forwardRef<CodeEditorApi, CodeEditorProps>(
         setError(outcome.error);
       }
       return outcome;
-    };
+    }, []);
+
+    const saveProject = useCallback(async () => {
+      if (!canEdit || !onSaveRef.current) return;
+      // Assign a draft id up front (mirrors NotesEditor's handleSave) so CodeBridge-style
+      // embedders can attempt an update-by-id first and fall back to create-on-404,
+      // rather than needing a separate "is this the first save" branch of their own.
+      const draftId = projectRef.current.id ?? newProjectDraftId();
+      if (!projectRef.current.id) setProjectId(draftId);
+      const project: CodeProject = { ...projectRef.current, id: draftId };
+
+      const validationErr = validateProject(project);
+      if (validationErr) {
+        setError(validationErr);
+        return;
+      }
+      setSaving(true);
+      setError(null);
+      const outcome = await onSaveRef.current(project);
+      setSaving(false);
+      if (outcome.ok) {
+        setProjectId(outcome.value.id);
+        notifyProjectChange(outcome.value);
+      } else {
+        setError(outcome.error);
+      }
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [canEdit]);
 
     useImperativeHandle(
       ref,
       (): CodeEditorApi => ({
-        loadSource: (source) => {
-          if (rejectUnsupportedLanguage(source.language)) return;
+        loadProject: (project) => {
+          const validationErr = validateProject(project);
+          if (validationErr) {
+            setError(validationErr);
+            return;
+          }
           setError(null);
           setResult(null);
-          setLanguage(source.language);
-          setContent(source.content);
-          setStdin(source.stdin ?? '');
-          setFilename(source.filename);
+          setProjectId(project.id);
+          setProjectName(project.name);
+          setFiles(project.files);
+          setEntryFilePath(project.entryFilePath);
+          setActiveFilePath(project.activeFilePath);
+          setStdin(project.stdin ?? '');
         },
-        getSource: () => sourceRef.current,
-        run: () => runSource(sourceRef.current),
+        getProject: () => projectRef.current,
+        run: () => runProject(projectRef.current),
       }),
-      // runSource closes over canRun/onRun — without these deps, run() would
-      // permanently use the values from whichever render first mounted the
-      // ref, ignoring later prop changes (e.g. canRun flipping with role).
-      [canRun, onRun]
+      [runProject]
     );
 
-    const handleLanguageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-      const next = e.target.value as Language;
-      setLanguage(next);
+    const handleContentChange = (path: string, value: string | undefined) => {
+      const nextContent = value ?? '';
+      setFiles((prev) => prev.map((f) => (f.path === path ? { ...f, content: nextContent } : f)));
       setResult(null);
       setError(null);
-      onSourceChange?.(buildCodeSource(next, content, stdin, filename));
     };
 
-    const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-      const next = e.target.value;
-      setContent(next);
-      setResult(null);
-      setError(null);
-      onSourceChange?.(buildCodeSource(language, next, stdin, filename));
+    // Fire onProjectChange after state settles, using the freshest project
+    // snapshot rather than the one captured at the start of the triggering
+    // event handler (content edits land in state one tick before this runs).
+    useEffect(() => {
+      notifyProjectChange(currentProject);
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [currentProject]);
+
+    const handleSelectFile = (path: string) => setActiveFilePath(path);
+
+    const handleSetEntry = (path: string) => setEntryFilePath(path);
+
+    const handleDeleteFile = (path: string) => {
+      setFiles((prev) => {
+        const next = prev.filter((f) => f.path !== path);
+        const firstRemaining = next[0];
+        if (!firstRemaining) return prev; // never delete the last file
+        if (entryFilePath === path) setEntryFilePath(firstRemaining.path);
+        if (activeFilePath === path) setActiveFilePath(firstRemaining.path);
+        return next;
+      });
     };
 
-    const handleStdinChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-      const next = e.target.value;
-      setStdin(next);
-      setResult(null);
+    const startNewFile = () => setNewFileDraft('');
+
+    const commitNewFile = () => {
+      const name = (newFileDraft ?? '').trim();
+      setNewFileDraft(null);
+      if (!name) return;
+      if (files.some((f) => f.path === name)) {
+        setError({ code: 'validation_error', message: `A file named "${name}" already exists.` });
+        return;
+      }
+      const language = inferLanguageFromExtension(name) ?? fallbackLanguage;
+      setFiles((prev) => [...prev, { path: name, language, content: '' }]);
+      setActiveFilePath(name);
       setError(null);
-      onSourceChange?.(buildCodeSource(language, content, next, filename));
     };
+
+    const handleEditorMount: OnMount = (editorInstance, monaco) => {
+      editorInstance.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => {
+        void saveProject();
+      });
+      editorInstance.addCommand(monaco.KeyCode.F5, () => {
+        void runProject(projectRef.current);
+      });
+    };
+
+    // Resolve 'system' against the OS/embedder color scheme, live — WebView2
+    // forwards prefers-color-scheme, so this flips without a remount if the
+    // OS theme changes mid-session.
+    const [systemPrefersDark, setSystemPrefersDark] = useState(
+      () => typeof window !== 'undefined' && window.matchMedia?.('(prefers-color-scheme: dark)').matches
+    );
+    useEffect(() => {
+      const mql = window.matchMedia?.('(prefers-color-scheme: dark)');
+      if (!mql) return;
+      const listener = (e: MediaQueryListEvent) => setSystemPrefersDark(e.matches);
+      mql.addEventListener('change', listener);
+      return () => mql.removeEventListener('change', listener);
+    }, []);
+    const resolvedTheme = theme === 'system' || !theme ? (systemPrefersDark ? 'dark' : 'light') : theme;
+    const monacoTheme = resolvedTheme === 'dark' ? 'vs-dark' : 'light';
 
     return (
-      <div className="sek-code-editor" data-theme={theme ?? 'system'}>
-        {error && (
+      <div className="sek-code-editor" data-theme={resolvedTheme}>
+        {error && !running && (
           <div className="sek-code-editor__error" role="alert">
             {error.message}
           </div>
         )}
-        <select
-          className="sek-code-editor__language"
-          value={language}
-          onChange={handleLanguageChange}
-          disabled={!canEdit}
-        >
-          {LANGUAGE_OPTIONS.map((lang) => (
-            <option key={lang} value={lang}>
-              {LANGUAGE_LABELS[lang]}
-            </option>
-          ))}
-        </select>
-        <textarea
-          className="sek-code-editor__source"
-          value={content}
-          onChange={handleContentChange}
-          disabled={!canEdit}
-          spellCheck={false}
-        />
-        <textarea
-          className="sek-code-editor__stdin"
-          value={stdin}
-          onChange={handleStdinChange}
-          disabled={!canEdit}
-          placeholder="stdin (optional)"
-        />
-        {canRun && (
-          <div className="sek-code-editor__actions">
-            <button
-              type="button"
-              onClick={() => void runSource(sourceRef.current)}
-              disabled={running}
-            >
-              {running ? 'Running…' : 'Run'}
-            </button>
-          </div>
-        )}
-        {result && (
-          <div
-            className="sek-code-editor__result"
-            data-timed-out={result.timedOut}
-          >
-            <pre className="sek-code-editor__stdout">{result.stdout}</pre>
-            {result.stderr && (
-              <pre className="sek-code-editor__stderr">{result.stderr}</pre>
+        <div className="sek-code-editor__body">
+          <FileExplorer
+            files={files}
+            activeFilePath={activeFilePath}
+            entryFilePath={entryFilePath}
+            canEdit={canEdit}
+            onSelect={handleSelectFile}
+            onNewFile={startNewFile}
+            onDeleteFile={handleDeleteFile}
+            onSetEntry={handleSetEntry}
+          />
+          <div className="sek-code-editor__main">
+            <FileTabs
+              files={files}
+              activeFilePath={activeFilePath}
+              entryFilePath={entryFilePath}
+              onSelect={handleSelectFile}
+            />
+            {newFileDraft !== null && (
+              <div className="sek-code-editor__new-file-form">
+                <input
+                  autoFocus
+                  className="sek-code-editor__new-file-input"
+                  placeholder="filename.ext"
+                  value={newFileDraft}
+                  onChange={(e) => setNewFileDraft(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') commitNewFile();
+                    if (e.key === 'Escape') setNewFileDraft(null);
+                  }}
+                  onBlur={commitNewFile}
+                />
+              </div>
             )}
-            <div className="sek-code-editor__meta">
-              exit {result.exitCode} · {result.durationMs}ms
-              {result.timedOut ? ' · timed out' : ''}
+            <div className="sek-code-editor__editor">
+              {activeFile && (
+                <Editor
+                  path={activeFile.path}
+                  language={MONACO_LANGUAGE_IDS[activeFile.language]}
+                  value={activeFile.content}
+                  theme={monacoTheme}
+                  onMount={handleEditorMount}
+                  onChange={(value) => handleContentChange(activeFile.path, value)}
+                  options={{
+                    readOnly: !canEdit,
+                    minimap: { enabled: true },
+                    bracketPairColorization: { enabled: true },
+                    fontFamily: 'Consolas, "Courier New", monospace',
+                    fontSize: 14,
+                    automaticLayout: true,
+                    scrollBeyondLastLine: false,
+                  }}
+                />
+              )}
             </div>
+            <div className="sek-code-editor__statusbar">
+              <span>{activeFile ? LANGUAGE_LABELS[activeFile.language] : ''}</span>
+              <span>{activeFilePath}</span>
+            </div>
+            <textarea
+              className="sek-code-editor__stdin"
+              value={stdin}
+              onChange={(e) => {
+                setStdin(e.target.value);
+                setResult(null);
+                setError(null);
+              }}
+              disabled={!canEdit}
+              placeholder="stdin (optional)"
+            />
+            {(canRun || onSave) && (
+              <div className="sek-code-editor__actions">
+                {canRun && (
+                  <button type="button" onClick={() => void runProject(currentProject)} disabled={running}>
+                    {running ? 'Running…' : 'Run (F5)'}
+                  </button>
+                )}
+                {canEdit && onSave && (
+                  <button type="button" onClick={() => void saveProject()} disabled={saving}>
+                    {saving ? 'Saving…' : 'Save (Ctrl+S)'}
+                  </button>
+                )}
+              </div>
+            )}
+            <OutputPanel result={result} error={running ? null : error} running={running} />
           </div>
-        )}
+        </div>
       </div>
     );
   }
