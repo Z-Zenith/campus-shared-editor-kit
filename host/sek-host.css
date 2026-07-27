@@ -167,11 +167,21 @@ body {
   cursor: pointer;
   padding: 2px 6px;
   border-radius: 3px;
-  opacity: 0;
   transition: opacity 0.1s ease;
 }
 
-.sek-code-editor__tree-file:hover .sek-code-editor__tree-file-set-entry,
+/* Always visible, not hover-gated — unlike delete, missing this control has a real
+   functional cost: a new file never becomes runnable until something marks it entry
+   (see CodeEditor.tsx's commitNewFile), so it needs to be discoverable without
+   requiring a student to think to hover over a specific file first. */
+.sek-code-editor__tree-file-set-entry {
+  opacity: 0.55;
+}
+
+.sek-code-editor__tree-file-delete {
+  opacity: 0;
+}
+
 .sek-code-editor__tree-file:hover .sek-code-editor__tree-file-delete {
   opacity: 0.6;
 }

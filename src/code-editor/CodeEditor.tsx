@@ -48,6 +48,12 @@ const MONACO_LANGUAGE_IDS: Readonly<Record<Language, string>> = {
   sql: 'sql',
   json: 'json',
   yaml: 'yaml',
+  go: 'go',
+  rust: 'rust',
+  ruby: 'ruby',
+  php: 'php',
+  kotlin: 'kotlin',
+  shell: 'shell',
 };
 
 function newProjectDraftId(): string {
@@ -251,8 +257,28 @@ export const CodeEditor = forwardRef<CodeEditorApi, CodeEditorProps>(
       // a Java file, not a silent fallback to fallbackLanguage.
       const language = newFileLanguage;
       const content = starterSnippetForLanguage(language);
+
+      // A brand-new file becomes the entry point too, but only when the project is
+      // still just its single untouched starter file — the overwhelmingly common case
+      // is "I opened Coding (which defaults to a blank main.py) and actually want to
+      // write in a different language." Run always executes entryFilePath, not
+      // whatever's merely active, so leaving entry on the untouched starter after this
+      // is exactly the bug where picking Java, writing real code, and hitting Run
+      // silently re-ran an empty main.py instead. Once a project has real, edited
+      // multi-file content, adding another file must NOT steal entry out from under it
+      // — that check happens against the *pre-update* files/entryFilePath here, before
+      // the new file is added below.
+      const soleFile = files.length === 1 ? files[0] : undefined;
+      const isSoleUntouchedStarter =
+        soleFile !== undefined &&
+        soleFile.path === entryFilePath &&
+        soleFile.content === starterSnippetForLanguage(soleFile.language);
+
       setFiles((prev) => [...prev, { path: name, language, content }]);
       setActiveFilePath(name);
+      if (isSoleUntouchedStarter) {
+        setEntryFilePath(name);
+      }
       setError(null);
     };
 

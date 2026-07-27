@@ -29,6 +29,12 @@ const LANGUAGE_MEMBERS: Readonly<Record<Language, true>> = {
   sql: true,
   json: true,
   yaml: true,
+  go: true,
+  rust: true,
+  ruby: true,
+  php: true,
+  kotlin: true,
+  shell: true,
 };
 
 const SUPPORTED_LANGUAGES = new Set<string>(Object.keys(LANGUAGE_MEMBERS));
@@ -79,6 +85,14 @@ const EXTENSION_LANGUAGE_MAP: Readonly<Record<string, Language>> = {
   '.json': 'json',
   '.yaml': 'yaml',
   '.yml': 'yaml',
+  '.go': 'go',
+  '.rs': 'rust',
+  '.rb': 'ruby',
+  '.php': 'php',
+  '.kt': 'kotlin',
+  '.kts': 'kotlin',
+  '.sh': 'shell',
+  '.bash': 'shell',
 };
 
 /**
@@ -161,6 +175,15 @@ const STARTER_SNIPPETS: Readonly<Record<Language, string>> = {
   sql: '-- SQL query\nSELECT 1;\n',
   json: '{}\n',
   yaml: '',
+  go: 'package main\n\nimport "fmt"\n\nfunc main() {\n\tfmt.Println("Hello, world!")\n}\n',
+  rust: 'fn main() {\n    println!("Hello, world!");\n}\n',
+  ruby: '',
+  // Unlike ruby/shell, PHP source outside <?php ?> tags is emitted literally rather
+  // than executed — an empty starter file would just run as a no-op that prints
+  // nothing, not "no boilerplate needed" the way the scripting languages above are.
+  php: '<?php\n\necho "Hello, world!\\n";\n',
+  kotlin: 'fun main() {\n    println("Hello, world!")\n}\n',
+  shell: '',
 };
 
 /** Starter boilerplate for a new file of the given language — see STARTER_SNIPPETS. */
@@ -189,6 +212,12 @@ const DEFAULT_FILENAME_BY_LANGUAGE: Readonly<Record<Language, string>> = {
   sql: 'query.sql',
   json: 'data.json',
   yaml: 'config.yaml',
+  go: 'main.go',
+  rust: 'main.rs',
+  ruby: 'main.rb',
+  php: 'main.php',
+  kotlin: 'main.kt',
+  shell: 'main.sh',
 };
 
 /** Default filename the "New file" picker pre-fills for the given language. */

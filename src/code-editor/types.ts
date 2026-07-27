@@ -6,6 +6,11 @@
  *    C, C++, Python, Java, .NET (C#), HTML, CSS, JavaScript/TypeScript, Node.js
  *    and its major runtime variants, SQL, JSON, and YAML at launch."
  *
+ * Post-launch expansion: Go, Rust, Ruby, PHP, Kotlin, and Shell/Bash were added on top
+ * of the original launch list (a contract change per this file's own convention, not a
+ * silent addition) to cover the languages a general software-engineering curriculum
+ * needs beyond the original list.
+ *
  * Acceptance criteria this interface MUST enforce:
  *   - "Output/error appears in the editor pane" — CodeEditorProps.onRun returns a
  *     CodeRunResult that the host pane renders.
@@ -40,7 +45,13 @@ export type Language =
   | 'nodejs'        // Node.js and its major runtime variants (per SEK-01 spec)
   | 'sql'
   | 'json'
-  | 'yaml';
+  | 'yaml'
+  | 'go'
+  | 'rust'
+  | 'ruby'
+  | 'php'
+  | 'kotlin'
+  | 'shell';
 
 /** Human-readable label for each language — used in the language picker UI. */
 export const LANGUAGE_LABELS: Readonly<Record<Language, string>> = {
@@ -57,6 +68,12 @@ export const LANGUAGE_LABELS: Readonly<Record<Language, string>> = {
   sql: 'SQL',
   json: 'JSON',
   yaml: 'YAML',
+  go: 'Go',
+  rust: 'Rust',
+  ruby: 'Ruby',
+  php: 'PHP',
+  kotlin: 'Kotlin',
+  shell: 'Shell',
 };
 
 /**
@@ -79,6 +96,12 @@ export const LANGUAGE_ICONS: Readonly<Record<Language, string>> = {
   sql: '🗃️',
   json: '📋',
   yaml: '⚙️',
+  go: '🐹',
+  rust: '🦀',
+  ruby: '💎',
+  php: '🐘',
+  kotlin: '🎯',
+  shell: '💲',
 };
 
 /**

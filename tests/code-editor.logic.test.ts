@@ -34,39 +34,30 @@ const LAUNCH_LIST: readonly Language[] = [
   'sql',
   'json',
   'yaml',
+  'go',
+  'rust',
+  'ruby',
+  'php',
+  'kotlin',
+  'shell',
 ];
 
 test('isSupportedLanguage accepts every launch-list language', () => {
-  const launchList = [
-    'c',
-    'cpp',
-    'python',
-    'java',
-    'dotnet',
-    'html',
-    'css',
-    'javascript',
-    'typescript',
-    'nodejs',
-    'sql',
-    'json',
-    'yaml',
-  ];
-  for (const language of launchList) {
+  for (const language of LAUNCH_LIST) {
     assert.equal(isSupportedLanguage(language), true, language);
   }
 });
 
 test('isSupportedLanguage rejects a foreign or stale language value', () => {
-  assert.equal(isSupportedLanguage('ruby'), false);
+  assert.equal(isSupportedLanguage('perl'), false);
   assert.equal(isSupportedLanguage(''), false);
   assert.equal(isSupportedLanguage('PYTHON'), false); // case-sensitive
 });
 
 test('unsupportedLanguageError returns the canonical code and names the rejected value', () => {
-  const err = unsupportedLanguageError('ruby');
+  const err = unsupportedLanguageError('perl');
   assert.equal(err.code, 'unsupported_language');
-  assert.match(err.message, /ruby/);
+  assert.match(err.message, /perl/);
 });
 
 test('inferLanguageFromExtension maps known extensions', () => {
@@ -78,11 +69,17 @@ test('inferLanguageFromExtension maps known extensions', () => {
   assert.equal(inferLanguageFromExtension('app.js'), 'javascript');
   assert.equal(inferLanguageFromExtension('types.ts'), 'typescript');
   assert.equal(inferLanguageFromExtension('config.yml'), 'yaml');
+  assert.equal(inferLanguageFromExtension('main.go'), 'go');
+  assert.equal(inferLanguageFromExtension('main.rs'), 'rust');
+  assert.equal(inferLanguageFromExtension('main.rb'), 'ruby');
+  assert.equal(inferLanguageFromExtension('main.php'), 'php');
+  assert.equal(inferLanguageFromExtension('main.kt'), 'kotlin');
+  assert.equal(inferLanguageFromExtension('main.sh'), 'shell');
 });
 
 test('inferLanguageFromExtension returns null for unknown or missing extensions', () => {
   assert.equal(inferLanguageFromExtension('README'), null);
-  assert.equal(inferLanguageFromExtension('data.rb'), null);
+  assert.equal(inferLanguageFromExtension('data.pl'), null);
   assert.equal(inferLanguageFromExtension(''), null);
 });
 
@@ -139,9 +136,9 @@ test('validateProject rejects duplicate file paths', () => {
 test('validateProject rejects a file with an unsupported language', () => {
   const project = {
     name: 'bad lang',
-    files: [{ path: 'main.rb', language: 'ruby', content: '' }],
-    entryFilePath: 'main.rb',
-    activeFilePath: 'main.rb',
+    files: [{ path: 'main.pl', language: 'perl', content: '' }],
+    entryFilePath: 'main.pl',
+    activeFilePath: 'main.pl',
   } as unknown as CodeProject;
   const err = validateProject(project);
   assert.equal(err?.code, 'unsupported_language');
