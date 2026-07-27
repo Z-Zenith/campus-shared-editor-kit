@@ -1,0 +1,294 @@
+/*
+ * Minimal baseline styles for SEK's WebView host bundles (campus-student-desktop).
+ *
+ * SEK's components ship unstyled (BEM class names only, no CSS) — TWA supplies its own
+ * design system for these classes when it imports NotesEditor/CodeEditor as a normal
+ * React component. The WebView host bundles here have no such consumer stylesheet, so
+ * without this file the components render real DOM (a <select>, <textarea>s, a Run
+ * button, etc.) with zero layout/borders/sizing — functionally invisible on a white
+ * background, not actually broken. This is a functional baseline, not a design system;
+ * it just makes the host-bundle surface visible and usable.
+ */
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+  color: #222;
+}
+
+.sek-notes-editor {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 12px;
+  gap: 8px;
+}
+
+.sek-code-editor__error,
+.sek-notes-editor__error {
+  color: #c0392b;
+  background: #fdedec;
+  border: 1px solid #c0392b;
+  border-radius: 4px;
+  padding: 8px 10px;
+}
+
+.sek-code-editor__actions,
+.sek-notes-editor__actions {
+  display: flex;
+  gap: 8px;
+}
+
+.sek-code-editor__actions button,
+.sek-notes-editor__actions button {
+  padding: 8px 16px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+/*
+ * Code editor layout baseline: sidebar (file explorer) + main column (tabs,
+ * Monaco editor, stdin, actions, output panel). code-host-theme.css layers
+ * the VS Code Dark+/light color skin on top of this structural baseline.
+ */
+.sek-code-editor {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.sek-code-editor__body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.sek-code-editor__sidebar {
+  width: 220px;
+  flex-shrink: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.sek-code-editor__sidebar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 10px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.sek-code-editor__new-file-button {
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.sek-code-editor__tree {
+  flex: 1;
+  overflow-y: auto;
+  font-size: 13px;
+}
+
+.sek-code-editor__tree-folder-name {
+  display: block;
+  padding: 3px 8px;
+  opacity: 0.75;
+}
+
+.sek-code-editor__tree-file {
+  display: flex;
+  align-items: center;
+}
+
+.sek-code-editor__tree-file-button {
+  flex: 1;
+  text-align: left;
+  background: none;
+  border: none;
+  padding: 3px 8px;
+  cursor: pointer;
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sek-code-editor__tree-entry-badge {
+  margin-left: 6px;
+  font-size: 10px;
+  opacity: 0.6;
+}
+
+.sek-code-editor__tree-file-set-entry,
+.sek-code-editor__tree-file-delete {
+  border: none;
+  background: none;
+  cursor: pointer;
+  padding: 0 6px;
+  opacity: 0.6;
+}
+
+.sek-code-editor__tree-file-set-entry:hover,
+.sek-code-editor__tree-file-delete:hover {
+  opacity: 1;
+}
+
+.sek-code-editor__main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.sek-code-editor__tabs {
+  display: flex;
+  overflow-x: auto;
+}
+
+.sek-code-editor__tab {
+  border: none;
+  background: none;
+  padding: 8px 14px;
+  font-size: 13px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.sek-code-editor__tab-entry-badge {
+  margin-left: 6px;
+  opacity: 0.6;
+}
+
+.sek-code-editor__new-file-form {
+  padding: 6px 10px;
+}
+
+.sek-code-editor__new-file-input {
+  width: 100%;
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 13px;
+  padding: 4px 6px;
+}
+
+.sek-code-editor__editor {
+  flex: 1;
+  min-height: 160px;
+}
+
+.sek-code-editor__statusbar {
+  display: flex;
+  justify-content: space-between;
+  padding: 3px 10px;
+  font-size: 12px;
+}
+
+.sek-code-editor__stdin {
+  height: 56px;
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 13px;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 0;
+  resize: vertical;
+}
+
+.sek-code-editor__output-panel {
+  height: 160px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid #ccc;
+}
+
+.sek-code-editor__output-tabs {
+  display: flex;
+}
+
+.sek-code-editor__output-tab {
+  border: none;
+  background: none;
+  padding: 6px 12px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.sek-code-editor__output-tab-badge {
+  margin-left: 4px;
+  color: #c0392b;
+  font-weight: bold;
+}
+
+.sek-code-editor__output-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 10px;
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 13px;
+}
+
+.sek-code-editor__output-empty,
+.sek-code-editor__output-status {
+  opacity: 0.6;
+  font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+.sek-code-editor__stdout,
+.sek-code-editor__stderr,
+.sek-code-editor__problems {
+  white-space: pre-wrap;
+  margin: 0 0 6px;
+}
+
+.sek-code-editor__stderr,
+.sek-code-editor__problems {
+  color: #c0392b;
+}
+
+.sek-code-editor__meta {
+  font-size: 12px;
+  opacity: 0.6;
+}
+
+.sek-notes-editor__title {
+  font-size: 18px;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  width: 100%;
+}
+
+.sek-notes-editor__body {
+  flex: 1;
+  min-height: 300px;
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 14px;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  resize: vertical;
+  width: 100%;
+}
+
+.sek-notes-editor__outgoing-links,
+.sek-notes-editor__backlinks {
+  font-size: 13px;
+  padding-left: 20px;
+  margin: 4px 0;
+}
