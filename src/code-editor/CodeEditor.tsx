@@ -22,7 +22,13 @@ import Editor, { type OnMount } from '@monaco-editor/react';
 import type { Result, SekError } from '../types/common.js';
 import type { CodeEditorApi, CodeEditorProps, CodeFile, CodeProject, CodeRunResult, Language } from './types.js';
 import { LANGUAGE_LABELS } from './types.js';
-import { buildStarterProject, inferLanguageFromExtension, isSupportedLanguage, validateProject } from './logic.js';
+import {
+  buildStarterProject,
+  defaultFilenameForLanguage,
+  isSupportedLanguage,
+  starterSnippetForLanguage,
+  validateProject,
+} from './logic.js';
 import { FileExplorer } from './FileExplorer.js';
 import { FileTabs } from './FileTabs.js';
 import { OutputPanel } from './OutputPanel.js';
@@ -81,6 +87,7 @@ export const CodeEditor = forwardRef<CodeEditorApi, CodeEditorProps>(
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<SekError | null>(initialValidationError);
     const [newFileDraft, setNewFileDraft] = useState<string | null>(null);
+    const [newFileLanguage, setNewFileLanguage] = useState<Language>(fallbackLanguage);
 
     const activeFile = files.find((f) => f.path === activeFilePath) ?? files[0];
 
@@ -219,7 +226,17 @@ export const CodeEditor = forwardRef<CodeEditorApi, CodeEditorProps>(
       });
     };
 
-    const startNewFile = () => setNewFileDraft('');
+    const startNewFile = () => {
+      setNewFileLanguage(fallbackLanguage);
+      setNewFileDraft(defaultFilenameForLanguage(fallbackLanguage));
+    };
+
+    // Switching the picker re-seeds the filename to that language's default —
+    // the input stays freely editable afterward, this is just a starting point.
+    const handleNewFileLanguageChange = (language: Language) => {
+      setNewFileLanguage(language);
+      setNewFileDraft(defaultFilenameForLanguage(language));
+    };
 
     const commitNewFile = () => {
       const name = (newFileDraft ?? '').trim();
@@ -229,8 +246,12 @@ export const CodeEditor = forwardRef<CodeEditorApi, CodeEditorProps>(
         setError({ code: 'validation_error', message: `A file named "${name}" already exists.` });
         return;
       }
-      const language = inferLanguageFromExtension(name) ?? fallbackLanguage;
-      setFiles((prev) => [...prev, { path: name, language, content: '' }]);
+      // The explicitly-picked language wins over extension inference — a student
+      // who picks "Java" but types a plain "foo" (no/wrong extension) still gets
+      // a Java file, not a silent fallback to fallbackLanguage.
+      const language = newFileLanguage;
+      const content = starterSnippetForLanguage(language);
+      setFiles((prev) => [...prev, { path: name, language, content }]);
       setActiveFilePath(name);
       setError(null);
     };
@@ -286,7 +307,30 @@ export const CodeEditor = forwardRef<CodeEditorApi, CodeEditorProps>(
               onSelect={handleSelectFile}
             />
             {newFileDraft !== null && (
-              <div className="sek-code-editor__new-file-form">
+              // onBlur lives on the whole form (not the bare input, as before adding
+              // the language <select>) so picking a language doesn't itself commit —
+              // relatedTarget containment is the standard way to detect focus actually
+              // leaving a composite widget vs. moving between its own controls.
+              <div
+                className="sek-code-editor__new-file-form"
+                onBlur={(e) => {
+                  if (!e.currentTarget.contains(e.relatedTarget as Node | null)) {
+                    commitNewFile();
+                  }
+                }}
+              >
+                <select
+                  className="sek-code-editor__new-file-language"
+                  aria-label="New file language"
+                  value={newFileLanguage}
+                  onChange={(e) => handleNewFileLanguageChange(e.target.value as Language)}
+                >
+                  {(Object.keys(LANGUAGE_LABELS) as Language[]).map((lang) => (
+                    <option key={lang} value={lang}>
+                      {LANGUAGE_LABELS[lang]}
+                    </option>
+                  ))}
+                </select>
                 <input
                   autoFocus
                   className="sek-code-editor__new-file-input"
@@ -297,7 +341,6 @@ export const CodeEditor = forwardRef<CodeEditorApi, CodeEditorProps>(
                     if (e.key === 'Enter') commitNewFile();
                     if (e.key === 'Escape') setNewFileDraft(null);
                   }}
-                  onBlur={commitNewFile}
                 />
               </div>
             )}

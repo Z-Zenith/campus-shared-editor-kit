@@ -11,12 +11,30 @@ import assert from 'node:assert/strict';
 
 import {
   buildStarterProject,
+  defaultFilenameForLanguage,
   inferLanguageFromExtension,
   isSupportedLanguage,
+  starterSnippetForLanguage,
   unsupportedLanguageError,
   validateProject,
 } from '../src/code-editor/logic.ts';
-import type { CodeProject } from '../src/code-editor/types.ts';
+import type { CodeProject, Language } from '../src/code-editor/types.ts';
+
+const LAUNCH_LIST: readonly Language[] = [
+  'c',
+  'cpp',
+  'python',
+  'java',
+  'dotnet',
+  'html',
+  'css',
+  'javascript',
+  'typescript',
+  'nodejs',
+  'sql',
+  'json',
+  'yaml',
+];
 
 test('isSupportedLanguage accepts every launch-list language', () => {
   const launchList = [
@@ -151,4 +169,40 @@ test('validateProject rejects an activeFilePath not present in files', () => {
   const err = validateProject(project);
   assert.equal(err?.code, 'validation_error');
   assert.match(err?.message ?? '', /Active file/);
+});
+
+test('defaultFilenameForLanguage covers every launch-list language with a non-empty filename', () => {
+  for (const language of LAUNCH_LIST) {
+    const filename = defaultFilenameForLanguage(language);
+    assert.ok(filename.length > 0, language);
+    // Every default filename must itself round-trip back to the same language
+    // via extension inference — otherwise picking a language and accepting the
+    // picker's own suggested filename would silently mislabel the file the
+    // moment it's reloaded from persisted content. Except 'nodejs': its default
+    // filename uses .js like 'javascript' by necessity (there's no separate
+    // Node-specific extension) — inferLanguageFromExtension deliberately maps
+    // .js to 'javascript' only, per that function's own doc comment, since the
+    // distinction is about the runner, not inferable from a filename.
+    if (language === 'nodejs') continue;
+    assert.equal(inferLanguageFromExtension(filename), language, filename);
+  }
+});
+
+test('defaultFilenameForLanguage capitalizes Java to match its public class name', () => {
+  assert.equal(defaultFilenameForLanguage('java'), 'Main.java');
+});
+
+test('starterSnippetForLanguage covers every launch-list language', () => {
+  for (const language of LAUNCH_LIST) {
+    // Snippet is allowed to be empty (e.g. python/css/yaml keep the pre-existing
+    // blank-file behavior) — this just asserts the map itself is exhaustive and
+    // returns a string, not that every language has non-empty boilerplate.
+    assert.equal(typeof starterSnippetForLanguage(language), 'string', language);
+  }
+});
+
+test('starterSnippetForLanguage seeds language-appropriate boilerplate', () => {
+  assert.match(starterSnippetForLanguage('c'), /#include\s*<stdio\.h>/);
+  assert.match(starterSnippetForLanguage('java'), /public class Main/);
+  assert.equal(starterSnippetForLanguage('python'), '');
 });

@@ -141,6 +141,62 @@ export function validateProject(project: CodeProject): SekError | null {
 }
 
 /**
+ * Minimal boilerplate seeded into a brand-new file created via the "New file"
+ * picker, so a student picking e.g. Java doesn't face a totally blank buffer
+ * with no idea how to start. Deliberately not used for buildStarterProject's
+ * own default (kept at content='' below) — that path is the very first file
+ * in a new blank project, which stays as it was before this map existed.
+ */
+const STARTER_SNIPPETS: Readonly<Record<Language, string>> = {
+  c: '#include <stdio.h>\n\nint main(void) {\n    return 0;\n}\n',
+  cpp: '#include <iostream>\n\nint main() {\n    return 0;\n}\n',
+  python: '',
+  java: 'public class Main {\n    public static void main(String[] args) {\n    }\n}\n',
+  dotnet: 'using System;\n\nclass Program\n{\n    static void Main(string[] args)\n    {\n    }\n}\n',
+  html: '<!doctype html>\n<html>\n<head>\n    <title>Document</title>\n</head>\n<body>\n\n</body>\n</html>\n',
+  css: '',
+  javascript: "console.log('Hello, world!');\n",
+  typescript: "console.log('Hello, world!');\n",
+  nodejs: "console.log('Hello, world!');\n",
+  sql: '-- SQL query\nSELECT 1;\n',
+  json: '{}\n',
+  yaml: '',
+};
+
+/** Starter boilerplate for a new file of the given language — see STARTER_SNIPPETS. */
+export function starterSnippetForLanguage(language: Language): string {
+  return STARTER_SNIPPETS[language];
+}
+
+/**
+ * Filename the "New file" picker pre-fills when a language is selected —
+ * still editable by the student afterward. Java capitalizes to `Main.java`
+ * since the JVM requires the public class name (Main, per STARTER_SNIPPETS)
+ * to match the filename; every other language just follows its most common
+ * entry-point convention.
+ */
+const DEFAULT_FILENAME_BY_LANGUAGE: Readonly<Record<Language, string>> = {
+  c: 'main.c',
+  cpp: 'main.cpp',
+  python: 'main.py',
+  java: 'Main.java',
+  dotnet: 'Program.cs',
+  html: 'index.html',
+  css: 'styles.css',
+  javascript: 'main.js',
+  typescript: 'main.ts',
+  nodejs: 'main.js',
+  sql: 'query.sql',
+  json: 'data.json',
+  yaml: 'config.yaml',
+};
+
+/** Default filename the "New file" picker pre-fills for the given language. */
+export function defaultFilenameForLanguage(language: Language): string {
+  return DEFAULT_FILENAME_BY_LANGUAGE[language];
+}
+
+/**
  * Builds a single-file starter CodeProject, e.g. for a brand-new blank
  * project or the "unsupported language" fallback in CodeEditor.tsx.
  */
