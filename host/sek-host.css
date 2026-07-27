@@ -26,7 +26,6 @@ body {
   color: #222;
 }
 
-.sek-code-editor,
 .sek-notes-editor {
   display: flex;
   flex-direction: column;
@@ -44,32 +43,6 @@ body {
   padding: 8px 10px;
 }
 
-.sek-code-editor__language {
-  padding: 6px;
-  font-size: 14px;
-  align-self: flex-start;
-}
-
-.sek-code-editor__source {
-  flex: 1;
-  min-height: 200px;
-  font-family: Consolas, "Courier New", monospace;
-  font-size: 14px;
-  padding: 8px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  resize: vertical;
-}
-
-.sek-code-editor__stdin {
-  height: 60px;
-  font-family: Consolas, "Courier New", monospace;
-  font-size: 13px;
-  padding: 8px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-}
-
 .sek-code-editor__actions,
 .sek-notes-editor__actions {
   display: flex;
@@ -83,27 +56,214 @@ body {
   cursor: pointer;
 }
 
-.sek-code-editor__result {
-  border: 1px solid #ccc;
-  border-radius: 4px;
+/*
+ * Code editor layout baseline: sidebar (file explorer) + main column (tabs,
+ * Monaco editor, stdin, actions, output panel). code-host-theme.css layers
+ * the VS Code Dark+/light color skin on top of this structural baseline.
+ */
+.sek-code-editor {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.sek-code-editor__body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.sek-code-editor__sidebar {
+  width: 220px;
+  flex-shrink: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.sek-code-editor__sidebar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   padding: 8px 10px;
-  background: #f7f7f7;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.sek-code-editor__new-file-button {
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.sek-code-editor__tree {
+  flex: 1;
+  overflow-y: auto;
+  font-size: 13px;
+}
+
+.sek-code-editor__tree-folder-name {
+  display: block;
+  padding: 3px 8px;
+  opacity: 0.75;
+}
+
+.sek-code-editor__tree-file {
+  display: flex;
+  align-items: center;
+}
+
+.sek-code-editor__tree-file-button {
+  flex: 1;
+  text-align: left;
+  background: none;
+  border: none;
+  padding: 3px 8px;
+  cursor: pointer;
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sek-code-editor__tree-entry-badge {
+  margin-left: 6px;
+  font-size: 10px;
+  opacity: 0.6;
+}
+
+.sek-code-editor__tree-file-set-entry,
+.sek-code-editor__tree-file-delete {
+  border: none;
+  background: none;
+  cursor: pointer;
+  padding: 0 6px;
+  opacity: 0.6;
+}
+
+.sek-code-editor__tree-file-set-entry:hover,
+.sek-code-editor__tree-file-delete:hover {
+  opacity: 1;
+}
+
+.sek-code-editor__main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.sek-code-editor__tabs {
+  display: flex;
+  overflow-x: auto;
+}
+
+.sek-code-editor__tab {
+  border: none;
+  background: none;
+  padding: 8px 14px;
+  font-size: 13px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.sek-code-editor__tab-entry-badge {
+  margin-left: 6px;
+  opacity: 0.6;
+}
+
+.sek-code-editor__new-file-form {
+  padding: 6px 10px;
+}
+
+.sek-code-editor__new-file-input {
+  width: 100%;
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 13px;
+  padding: 4px 6px;
+}
+
+.sek-code-editor__editor {
+  flex: 1;
+  min-height: 160px;
+}
+
+.sek-code-editor__statusbar {
+  display: flex;
+  justify-content: space-between;
+  padding: 3px 10px;
+  font-size: 12px;
+}
+
+.sek-code-editor__stdin {
+  height: 56px;
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 13px;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 0;
+  resize: vertical;
+}
+
+.sek-code-editor__output-panel {
+  height: 160px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid #ccc;
+}
+
+.sek-code-editor__output-tabs {
+  display: flex;
+}
+
+.sek-code-editor__output-tab {
+  border: none;
+  background: none;
+  padding: 6px 12px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.sek-code-editor__output-tab-badge {
+  margin-left: 4px;
+  color: #c0392b;
+  font-weight: bold;
+}
+
+.sek-code-editor__output-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 10px;
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 13px;
+}
+
+.sek-code-editor__output-empty,
+.sek-code-editor__output-status {
+  opacity: 0.6;
+  font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 
 .sek-code-editor__stdout,
-.sek-code-editor__stderr {
+.sek-code-editor__stderr,
+.sek-code-editor__problems {
   white-space: pre-wrap;
-  font-family: Consolas, "Courier New", monospace;
-  margin: 4px 0;
+  margin: 0 0 6px;
 }
 
-.sek-code-editor__stderr {
+.sek-code-editor__stderr,
+.sek-code-editor__problems {
   color: #c0392b;
 }
 
 .sek-code-editor__meta {
   font-size: 12px;
-  color: #666;
+  opacity: 0.6;
 }
 
 .sek-notes-editor__title {

@@ -8,7 +8,7 @@ Public TypeScript interface for the **Shared Editor Kit (SEK)** — the cross-co
 
 | ID | Feature | Status in this package |
 |---|---|---|
-| [SEK-01](../docs/Campus%20platform%20architecture.md#features--shared-editor-kit-sek) | Code editor (C, C++, Python, Java, .NET, HTML, CSS, JS/TS, Node, SQL, JSON, YAML) | **Implemented** — `CodeEditor` + `isSupportedLanguage` |
+| [SEK-01](../docs/Campus%20platform%20architecture.md#features--shared-editor-kit-sek) | Code editor (C, C++, Python, Java, .NET, HTML, CSS, JS/TS, Node, SQL, JSON, YAML) | **Implemented** — `CodeEditor` (Monaco-powered, multi-file) + `isSupportedLanguage` |
 | [SEK-02](../docs/Campus%20platform%20architecture.md#features--shared-editor-kit-sek) | Document viewer & annotator (PDF/PPTX/DOCX, highlights/textboxes/ink, OCR) | **Implemented** — `DocumentViewer` |
 | [SEK-03](../docs/Campus%20platform%20architecture.md#features--shared-editor-kit-sek) | Markdown notes (Obsidian-style linked notes) | **Implemented** — `NotesEditor` + `extractOutgoingLinks` |
 | [SEK-04](../docs/Campus%20platform%20architecture.md#features--shared-editor-kit-sek) | Built-in image search (inside the notes editor) | Interface only |
@@ -24,6 +24,7 @@ Public TypeScript interface for the **Shared Editor Kit (SEK)** — the cross-co
 ```ts
 import {
   CodeEditorProps,
+  CodeProject,
   Language,
   LANGUAGE_LABELS,
   Note,
@@ -48,8 +49,8 @@ import type { UserContext, Result, SekError } from '@campus/shared-editor-kit/ty
 
 These are the non-obvious decisions that came from the EARS requirements and acceptance criteria. Embedders (TWA, SDA) and the component implementor should follow them when the runtime code lands:
 
-1. **Closed language list for SEK-01.** `Language` is a TypeScript string-literal union. The runtime surface returns `Result<CodeRunResult, SekError>` with `code: 'unsupported_language'` for any value not on the list — this enforces the spec's "a language outside the launch list shows a clear 'unsupported language' error, not a silent failure" acceptance criterion.
-2. **SEK owns no persistence.** Every persistable entity is passed through a callback the embedder supplies (`onSave`, `onDelete`, `onAnnotationChange`, `onUploadImage`, …). The Backend API remains the source of truth; the table layout in `docs/campus-platform-db-api-schema.md` Part 1.9 (`notes`, `note_links`, `documents`) is what these callbacks write to.
+1. **Closed language list for SEK-01.** `Language` is a TypeScript string-literal union. The runtime surface returns `Result<CodeRunResult, SekError>` with `code: 'unsupported_language'` for any value not on the list — this enforces the spec's "a language outside the launch list shows a clear 'unsupported language' error, not a silent failure" acceptance criterion. Each `CodeFile` in a `CodeProject` carries its own `Language` (one file = one language; the project as a whole has no single language) since a natural project — e.g. HTML+CSS+JS — mixes them; `CodeProject.entryFilePath` is the file whose language selects the Code Execution Service's runner.
+2. **SEK owns no persistence.** Every persistable entity is passed through a callback the embedder supplies (`onSave`, `onDelete`, `onAnnotationChange`, `onUploadImage`, …). `CodeEditorProps.onSave` is optional — when the embedder omits it, Save is a no-op and the editor behaves as a scratch surface (its pre-0.2.0 default). The Backend API remains the source of truth; the table layout in `docs/campus-platform-db-api-schema.md` Part 1.9 (`notes`, `note_links`, `documents`, `code_projects`, `code_files`) is what these callbacks write to.
 3. **SEK owns no auth.** Every component takes a `UserContext` and forwards the session token; SEK never opens or refreshes a session itself.
 4. **Wikilink resolution is `Result<Note, SekError>`, not a thrown exception.** This is the contract that backs SEK-03's "links resolve to not-found, not a crash" acceptance criterion.
 5. **Image search returns a `content-addressed` URL, not the original `sourceUrl`.** This is the contract for SEK-04's "inserted image is embedded, not just linked" acceptance criterion. The embedder's `onUploadImage` is the step that makes the image survive the source going away.

@@ -50,12 +50,20 @@ export type {
 // SEK-01 — Code editor
 export type {
   Language,
-  CodeSource,
+  CodeFile,
+  CodeProject,
   CodeRunResult,
   CodeEditorProps,
   CodeEditorApi,
 } from './code-editor/index.js';
-export { LANGUAGE_LABELS, CodeEditor, isSupportedLanguage } from './code-editor/index.js';
+export {
+  LANGUAGE_LABELS,
+  CodeEditor,
+  isSupportedLanguage,
+  inferLanguageFromExtension,
+  validateProject,
+  buildStarterProject,
+} from './code-editor/index.js';
 
 // SEK-02 — Document viewer & annotator
 export type {

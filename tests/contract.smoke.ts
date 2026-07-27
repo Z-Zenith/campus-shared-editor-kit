@@ -18,7 +18,8 @@ import type {
   SekErrorCode,
   // SEK-01
   Language,
-  CodeSource,
+  CodeFile,
+  CodeProject,
   CodeRunResult,
   CodeEditorProps,
   CodeEditorApi,
@@ -127,7 +128,7 @@ const _codeEditor: CodeEditorProps = {
   user,
   canRun: true,
   canEdit: true,
-  onRun: async (_source: CodeSource): Promise<Result<CodeRunResult, SekError>> => ({
+  onRun: async (_project: CodeProject): Promise<Result<CodeRunResult, SekError>> => ({
     ok: true,
     value: { stdout: '', stderr: '', exitCode: 0, durationMs: 1, timedOut: false },
   }),
@@ -199,7 +200,8 @@ declare const _barrelExports: {
   stroke: InkStroke;
   ocr: OcrPageResult;
   docDesc: DocumentDescriptor;
-  codeSrc: CodeSource;
+  codeFile: CodeFile;
+  codeProject: CodeProject;
   codeRun: CodeRunResult;
   backlinks: Backlinks;
   outgoing: OutgoingLinks;

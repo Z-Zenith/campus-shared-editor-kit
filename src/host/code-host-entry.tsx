@@ -8,18 +8,21 @@
  * uniformly. The host resolves the pending promise by calling
  * `window.__sekHostReceive(json)` back via InvokeScript.
  *
- * SEK-01 has one bridged method for this first cut: 'run'. There's no persistence
- * callback yet (no onSave/onLoad) — this is a scratch code-run surface, not a saved-files
- * feature; the embedder is free to add persistence later without touching this protocol.
- * Auth/API calls live entirely on the C# side — this file never sees a session token.
+ * SEK-01 has two bridged methods: 'run' and 'save'. Auth/API calls live entirely on the
+ * C# side — this file never sees a session token.
+ *
+ * `./monaco-setup.js` must be imported first (before CodeEditor, which renders a Monaco
+ * <Editor>) so the no-CDN loader/worker-URL overrides are installed before anything tries
+ * to construct a Monaco worker.
  */
+import './monaco-setup.js';
 import { createElement } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { CodeEditor } from '../code-editor/CodeEditor.js';
-import type { CodeEditorProps, CodeRunResult, CodeSource } from '../code-editor/types.js';
+import type { CodeEditorProps, CodeProject, CodeRunResult } from '../code-editor/types.js';
 import type { Result, SekError, UserContext } from '../types/common.js';
 
-type BridgeMethod = 'run';
+type BridgeMethod = 'run' | 'save';
 
 interface HostRequest {
   readonly requestId: string;
@@ -36,6 +39,7 @@ interface HostResponse {
 
 interface MountMessage {
   readonly user: UserContext;
+  readonly currentProject: CodeProject | null;
   readonly canRun: boolean;
   readonly canEdit: boolean;
 }
@@ -85,14 +89,16 @@ if (!rootElement) {
 const root: Root = createRoot(rootElement);
 
 window.__sekHostMount = (json: string) => {
-  const { user, canRun, canEdit }: MountMessage = JSON.parse(json);
+  const { user, currentProject, canRun, canEdit }: MountMessage = JSON.parse(json);
 
   const props: CodeEditorProps = {
     user,
+    ...(currentProject ? { initialProject: currentProject } : {}),
     canRun,
     canEdit,
     defaultLanguage: 'python',
-    onRun: (source: CodeSource) => callHost<CodeRunResult>('run', { source }),
+    onRun: (project: CodeProject) => callHost<CodeRunResult>('run', { project }),
+    onSave: (project: CodeProject) => callHost<CodeProject>('save', { project }),
   };
 
   root.render(createElement(CodeEditor, props));
