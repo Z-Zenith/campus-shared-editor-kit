@@ -64,7 +64,13 @@ export const NotesEditor = forwardRef<NotesEditorApi, NotesEditorProps>(
     // onResolveLink for every link) on keystrokes that don't add/remove a link target.
     const linkTargetsKey = useMemo(() => uniqueLinkTargetsKey(outgoingLinks), [outgoingLinks]);
 
+    // Bumped whenever the embedder swaps which note is being edited; guards
+    // loadNote()/reload() and the backlinks fetch below against a slow
+    // resolution for a since-abandoned note landing in the currently-open one.
+    const generationRef = useRef(0);
+
     const loadNote = async (noteId: string | null) => {
+      const generation = generationRef.current;
       setError(null);
       if (noteId === null) {
         setTitle('');
@@ -76,6 +82,7 @@ export const NotesEditor = forwardRef<NotesEditorApi, NotesEditorProps>(
         onResolveLink(noteId),
         onListBacklinks(noteId),
       ]);
+      if (generationRef.current !== generation) return;
       if (resolved.ok) {
         setTitle(resolved.value.title);
         setContent(resolved.value.contentMarkdown);
@@ -87,11 +94,13 @@ export const NotesEditor = forwardRef<NotesEditorApi, NotesEditorProps>(
 
     // Reset the draft whenever the embedder swaps which note is being edited.
     useEffect(() => {
+      const generation = ++generationRef.current;
       setTitle(currentNote?.title ?? '');
       setContent(currentNote?.contentMarkdown ?? '');
       setBacklinks([]);
       if (currentNote) {
         onListBacklinks(currentNote.id).then((result) => {
+          if (generationRef.current !== generation) return;
           if (result.ok) setBacklinks(result.value);
         });
       }
