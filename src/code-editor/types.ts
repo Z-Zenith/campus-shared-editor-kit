@@ -106,12 +106,12 @@ export const LANGUAGE_ICONS: Readonly<Record<Language, string>> = {
 
 /**
  * A single file inside a CodeProject. `path` is also the file-tree/tab key —
- * it may contain `/` to express folders in the editor's tree UI, but the Code
- * Execution Service (Judge0) has no concept of subfolders at run time; the
- * embedder flattens non-entry paths to their basename before submission (see
- * campus-backend's Judge0Client). Cross-file references therefore only work
- * when a language's toolchain auto-discovers same-directory files by name
- * (C/C++ #include, Java sibling classes) — not package-relative imports.
+ * it may contain `/` to express folders in the editor's tree UI, and the
+ * Code Execution Service preserves that real relative path (subdirectories
+ * included) when it materializes the project on disk before running it (see
+ * campus-backend's DockerCodeRunner.WriteFiles), so a toolchain that resolves
+ * paths itself (e.g. package-relative imports) works the same way it would
+ * on a student's own machine — not just same-directory auto-discovery.
  */
 export interface CodeFile {
   readonly path: string;
@@ -153,11 +153,11 @@ export interface CodeRunResult {
   readonly timedOut: boolean;
   /**
    * Coarse outcome classification, sourced from the Code Execution Service's
-   * own status (e.g. Judge0's status id) — lets the Problems panel show a
-   * compile error distinctly from a runtime error or a timeout, rather than
-   * inferring it from exitCode/timedOut alone. Optional: absent means the
-   * embedder's runner doesn't distinguish (treat as unknown/'runtime_error'
-   * when exitCode !== 0).
+   * own classification (see campus-backend's DockerCodeRunner.ClassifyRunResult)
+   * — lets the Problems panel show a compile error distinctly from a runtime
+   * error or a timeout, rather than inferring it from exitCode/timedOut alone.
+   * Optional: absent means the embedder's runner doesn't distinguish (treat as
+   * unknown/'runtime_error' when exitCode !== 0).
    */
   readonly status?: 'accepted' | 'compilation_error' | 'runtime_error' | 'time_limit_exceeded' | 'internal_error';
 }
@@ -191,8 +191,8 @@ export interface CodeEditorProps {
   readonly canEdit: boolean;
   /**
    * Called when the user clicks Run/presses F5. The embedder is responsible
-   * for forwarding the request to the Backend API, which talks to the
-   * self-hosted Code Execution Service (Judge0 — see architecture doc
+   * for forwarding the request to the Backend API, which runs it via
+   * DockerCodeRunner (a per-submission `docker run` — see architecture doc
    * Section 7). SEK does NOT call the runner directly.
    */
   readonly onRun: (project: CodeProject) => Promise<Result<CodeRunResult, SekError>>;

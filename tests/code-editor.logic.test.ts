@@ -14,6 +14,7 @@ import {
   defaultFilenameForLanguage,
   inferLanguageFromExtension,
   isSupportedLanguage,
+  resizedSize,
   starterSnippetForLanguage,
   unsupportedLanguageError,
   validateProject,
@@ -202,4 +203,21 @@ test('starterSnippetForLanguage seeds language-appropriate boilerplate', () => {
   assert.match(starterSnippetForLanguage('c'), /#include\s*<stdio\.h>/);
   assert.match(starterSnippetForLanguage('java'), /public class Main/);
   assert.equal(starterSnippetForLanguage('python'), '');
+});
+
+test('resizedSize adds the delta to the starting size, within bounds', () => {
+  assert.equal(resizedSize(240, 40, 160, 480), 280);
+  assert.equal(resizedSize(240, -40, 160, 480), 200);
+});
+
+test('resizedSize clamps to min when the delta would go below it', () => {
+  assert.equal(resizedSize(240, -1000, 160, 480), 160);
+});
+
+test('resizedSize clamps to max when the delta would go above it', () => {
+  assert.equal(resizedSize(240, 1000, 160, 480), 480);
+});
+
+test('resizedSize leaves size unchanged for a zero delta', () => {
+  assert.equal(resizedSize(240, 0, 160, 480), 240);
 });

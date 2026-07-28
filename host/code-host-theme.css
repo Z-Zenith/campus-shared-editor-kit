@@ -171,6 +171,11 @@
   border-top: 1px solid #3c3c3c;
 }
 
+.sek-code-editor[data-theme="dark"] .sek-code-editor__sidebar-resize-handle:hover,
+.sek-code-editor[data-theme="dark"] .sek-code-editor__output-resize-handle:hover {
+  background: #007acc;
+}
+
 .sek-code-editor[data-theme="dark"] .sek-code-editor__output-tab {
   color: #969696;
 }
@@ -370,6 +375,11 @@
 .sek-code-editor[data-theme="light"] .sek-code-editor__output-panel {
   background: #ffffff;
   border-top: 1px solid #e7e7e7;
+}
+
+.sek-code-editor[data-theme="light"] .sek-code-editor__sidebar-resize-handle:hover,
+.sek-code-editor[data-theme="light"] .sek-code-editor__output-resize-handle:hover {
+  background: #007acc;
 }
 
 .sek-code-editor[data-theme="light"] .sek-code-editor__output-tab {

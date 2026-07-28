@@ -1,7 +1,7 @@
 /**
  * SEK-01 — VS Code-styled batch output/Problems panel.
  *
- * NOT a live interactive terminal: the Code Execution Service (Judge0) is a
+ * NOT a live interactive terminal: the Code Execution Service (DockerCodeRunner) is a
  * one-shot batch executor — it takes source+stdin upfront and returns
  * stdout/stderr/exit code/duration afterward, with no interactive stdin
  * during a run. This panel presents that batch result in a VS Code-like
@@ -11,6 +11,7 @@
  * interactive shell is out of scope.
  */
 import { useLayoutEffect, useState } from 'react';
+import type { CSSProperties } from 'react';
 import type { CodeFile, CodeRunResult, TerminalExecResult } from './types.js';
 import type { Result, SekError } from '../types/common.js';
 import { TerminalPanel } from './TerminalPanel.js';
@@ -26,9 +27,11 @@ interface OutputPanelProps {
   readonly onTerminalStart?: ((files: readonly CodeFile[]) => Promise<Result<{ sessionId: string }, SekError>>) | undefined;
   readonly onTerminalExec?: ((sessionId: string, command: string) => Promise<Result<TerminalExecResult, SekError>>) | undefined;
   readonly onTerminalClose?: ((sessionId: string) => Promise<Result<void, SekError>>) | undefined;
+  /** Height, set by CodeEditor.tsx from its resizable-output-panel state (see ResizeHandle.tsx). */
+  readonly style?: CSSProperties;
 }
 
-export function OutputPanel({ result, error, running, files, onTerminalStart, onTerminalExec, onTerminalClose }: OutputPanelProps) {
+export function OutputPanel({ result, error, running, files, onTerminalStart, onTerminalExec, onTerminalClose, style }: OutputPanelProps) {
   const isProblem =
     result?.status === 'compilation_error' ||
     result?.status === 'internal_error' ||
@@ -56,7 +59,7 @@ export function OutputPanel({ result, error, running, files, onTerminalStart, on
   const activeTab: PanelTab = error ? 'problems' : tab;
 
   return (
-    <div className="sek-code-editor__output-panel">
+    <div className="sek-code-editor__output-panel" style={style}>
       <div className="sek-code-editor__output-tabs" role="tablist">
         <button
           type="button"

@@ -1,12 +1,13 @@
 /**
  * SEK-01 — file tree, built from CodeFile.path strings split on '/'.
  *
- * Purely organizational on the editor side — Judge0 has no concept of
- * subfolders at run time (see types.ts's CodeFile doc comment), but the tree
- * is still useful for a student organizing a multi-file project visually.
- * Unstyled (BEM class hooks only) per SEK's styling convention.
+ * Mirrors the real on-disk layout the Code Execution Service materializes a project into
+ * before running it (see types.ts's CodeFile doc comment) — useful for a student organizing
+ * a multi-file project visually, not just cosmetic. Unstyled (BEM class hooks only) per
+ * SEK's styling convention.
  */
 import { useMemo } from 'react';
+import type { CSSProperties } from 'react';
 import type { CodeFile, Language } from './types.js';
 import { LANGUAGE_ICONS } from './types.js';
 
@@ -50,6 +51,8 @@ interface FileExplorerProps {
   readonly onNewFile: () => void;
   readonly onDeleteFile: (path: string) => void;
   readonly onSetEntry: (path: string) => void;
+  /** Width, set by CodeEditor.tsx from its resizable-sidebar state (see ResizeHandle.tsx). */
+  readonly style?: CSSProperties;
 }
 
 function Node({
@@ -151,11 +154,12 @@ export function FileExplorer({
   onNewFile,
   onDeleteFile,
   onSetEntry,
+  style,
 }: FileExplorerProps) {
   const tree = useMemo(() => buildTree(files), [files]);
 
   return (
-    <div className="sek-code-editor__sidebar">
+    <div className="sek-code-editor__sidebar" style={style}>
       <div className="sek-code-editor__sidebar-header">
         <span>Explorer</span>
         {canEdit && (

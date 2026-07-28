@@ -80,11 +80,29 @@ body {
 }
 
 .sek-code-editor__sidebar {
-  width: 240px;
+  /* Width comes from CodeEditor.tsx's resizable-sidebar state (inline style) — see
+     ResizeHandle.tsx and the __sidebar-resize-handle rule below. */
   flex-shrink: 0;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
+}
+
+/* Drag handles for the two resizable panes (sidebar width, output panel height) — see
+   ResizeHandle.tsx for the pointer-drag logic these sit on top of. Color/hover-highlight
+   is layered on in code-host-theme.css, matching every other element here. */
+.sek-code-editor__sidebar-resize-handle {
+  width: 4px;
+  flex-shrink: 0;
+  cursor: col-resize;
+  touch-action: none;
+}
+
+.sek-code-editor__output-resize-handle {
+  height: 4px;
+  flex-shrink: 0;
+  cursor: row-resize;
+  touch-action: none;
 }
 
 .sek-code-editor__sidebar-header {
@@ -349,14 +367,12 @@ body {
 }
 
 .sek-code-editor__output-panel {
-  height: 220px;
-  min-height: 100px;
-  max-height: 70vh;
+  /* Height comes from CodeEditor.tsx's resizable-output-panel state (inline style) — see
+     ResizeHandle.tsx and the __output-resize-handle rule above. */
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
   border-top: 1px solid #ccc;
-  resize: vertical;
   overflow: hidden;
 }
 

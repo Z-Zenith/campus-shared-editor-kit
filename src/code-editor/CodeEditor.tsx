@@ -32,6 +32,17 @@ import {
 import { FileExplorer } from './FileExplorer.js';
 import { FileTabs } from './FileTabs.js';
 import { OutputPanel } from './OutputPanel.js';
+import { ResizeHandle } from './ResizeHandle.js';
+
+// VS Code-like defaults/bounds for the two resizable panes below — matches the fixed sizes
+// this layout used before resizing existed (240px sidebar, 220px output panel), just no
+// longer fixed.
+const SIDEBAR_DEFAULT_WIDTH = 240;
+const SIDEBAR_MIN_WIDTH = 160;
+const SIDEBAR_MAX_WIDTH = 480;
+const OUTPUT_DEFAULT_HEIGHT = 220;
+const OUTPUT_MIN_HEIGHT = 100;
+const OUTPUT_MAX_HEIGHT = 600;
 
 /** Our closed Language union -> Monaco's built-in language id (Monarch tokenizer). */
 const MONACO_LANGUAGE_IDS: Readonly<Record<Language, string>> = {
@@ -106,6 +117,8 @@ export const CodeEditor = forwardRef<CodeEditorApi, CodeEditorProps>(
     const [error, setError] = useState<SekError | null>(initialValidationError);
     const [newFileDraft, setNewFileDraft] = useState<string | null>(null);
     const [newFileLanguage, setNewFileLanguage] = useState<Language>(fallbackLanguage);
+    const [sidebarWidth, setSidebarWidth] = useState(SIDEBAR_DEFAULT_WIDTH);
+    const [outputHeight, setOutputHeight] = useState(OUTPUT_DEFAULT_HEIGHT);
 
     const activeFile = files.find((f) => f.path === activeFilePath) ?? files[0];
 
@@ -336,6 +349,15 @@ export const CodeEditor = forwardRef<CodeEditorApi, CodeEditorProps>(
             onNewFile={startNewFile}
             onDeleteFile={handleDeleteFile}
             onSetEntry={handleSetEntry}
+            style={{ width: sidebarWidth }}
+          />
+          <ResizeHandle
+            orientation="vertical"
+            size={sidebarWidth}
+            min={SIDEBAR_MIN_WIDTH}
+            max={SIDEBAR_MAX_WIDTH}
+            onResize={setSidebarWidth}
+            className="sek-code-editor__sidebar-resize-handle"
           />
           <div className="sek-code-editor__main">
             <FileTabs
@@ -461,6 +483,14 @@ export const CodeEditor = forwardRef<CodeEditorApi, CodeEditorProps>(
                 )}
               </div>
             )}
+            <ResizeHandle
+              orientation="horizontal"
+              size={outputHeight}
+              min={OUTPUT_MIN_HEIGHT}
+              max={OUTPUT_MAX_HEIGHT}
+              onResize={setOutputHeight}
+              className="sek-code-editor__output-resize-handle"
+            />
             <OutputPanel
               result={result}
               error={running ? null : error}
@@ -469,6 +499,7 @@ export const CodeEditor = forwardRef<CodeEditorApi, CodeEditorProps>(
               onTerminalStart={onTerminalStart}
               onTerminalExec={onTerminalExec}
               onTerminalClose={onTerminalClose}
+              style={{ height: outputHeight }}
             />
           </div>
         </div>

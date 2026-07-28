@@ -238,3 +238,14 @@ export function buildStarterProject(language: Language, filename: string, conten
     activeFilePath: filename,
   };
 }
+
+/**
+ * Pure drag math for the sidebar/output resize handles (see ResizeHandle.tsx): given the
+ * pointer's total movement since the drag started and the size the pane started at, returns
+ * the new size clamped to [min, max]. Kept separate from the pointer-event wiring itself (DOM-
+ * only, lives in ResizeHandle.tsx) so the actual arithmetic is unit-testable the same way as
+ * every other piece of editor logic in this module.
+ */
+export function resizedSize(startSize: number, delta: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, startSize + delta));
+}
