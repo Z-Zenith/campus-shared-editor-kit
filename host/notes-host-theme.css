@@ -19,6 +19,19 @@
   color: #cccccc;
 }
 
+.sek-notes-editor[data-theme="dark"] .sek-notes-editor__ribbon-tab {
+  color: #969696;
+}
+
+.sek-notes-editor[data-theme="dark"] .sek-notes-editor__ribbon-tab:hover {
+  background: #ffffff1a;
+}
+
+.sek-notes-editor[data-theme="dark"] .sek-notes-editor__ribbon-tab[data-active="true"] {
+  background: #252526;
+  color: #ffffff;
+}
+
 .sek-notes-editor[data-theme="dark"] .sek-notes-editor__toolbar {
   background: #252526;
   border-color: #3f3f46;
@@ -41,7 +54,8 @@
   border-color: #5599ff;
 }
 
-.sek-notes-editor[data-theme="dark"] .sek-notes-editor__toolbar-heading-select {
+.sek-notes-editor[data-theme="dark"] .sek-notes-editor__toolbar-heading-select,
+.sek-notes-editor[data-theme="dark"] .sek-notes-editor__toolbar-font-select {
   background: #2a2a2a;
   border: 1px solid #3f3f46;
   color: #cccccc;
@@ -58,6 +72,53 @@
 
 .sek-notes-editor[data-theme="dark"] .sek-notes-editor__content .ProseMirror a {
   color: #5599ff;
+}
+
+.sek-notes-editor[data-theme="dark"] .sek-notes-editor__content .ProseMirror table td,
+.sek-notes-editor[data-theme="dark"] .sek-notes-editor__content .ProseMirror table th {
+  border-color: #3f3f46;
+}
+
+.sek-notes-editor[data-theme="dark"] .sek-notes-editor__wikilink {
+  color: #5599ff;
+  background: #5599ff1a;
+}
+
+.sek-notes-editor[data-theme="dark"] .sek-notes-editor__wikilink[data-status="not_found"] {
+  color: #ff6b6b;
+  background: #ff6b6b1a;
+  text-decoration: line-through;
+}
+
+.sek-notes-editor[data-theme="dark"] .sek-notes-editor__links-pane {
+  background: #252526;
+  border-color: #3f3f46;
+}
+
+.sek-notes-editor[data-theme="dark"] .sek-notes-editor__outgoing-links li:hover,
+.sek-notes-editor[data-theme="dark"] .sek-notes-editor__backlinks li:hover {
+  background: #ffffff1a;
+}
+
+.sek-notes-editor[data-theme="dark"] .sek-notes-editor__outgoing-links li[data-status="not_found"] {
+  color: #ff6b6b;
+  text-decoration: line-through;
+}
+
+.sek-notes-editor[data-theme="dark"] .sek-notes-editor__image-search {
+  background: #252526;
+  border-color: #3f3f46;
+  color: #cccccc;
+}
+
+.sek-notes-editor[data-theme="dark"] .sek-notes-editor__image-search-input {
+  background: #2a2a2a;
+  border: 1px solid #3f3f46;
+  color: #cccccc;
+}
+
+.sek-notes-editor[data-theme="dark"] .sek-notes-editor__image-search-result {
+  border-color: #3f3f46;
 }
 
 .sek-notes-editor[data-theme="dark"] .sek-notes-editor__actions button {
@@ -83,6 +144,19 @@
   color: #1e1e1e;
 }
 
+.sek-notes-editor[data-theme="light"] .sek-notes-editor__ribbon-tab {
+  color: #616161;
+}
+
+.sek-notes-editor[data-theme="light"] .sek-notes-editor__ribbon-tab:hover {
+  background: #e1dfdd;
+}
+
+.sek-notes-editor[data-theme="light"] .sek-notes-editor__ribbon-tab[data-active="true"] {
+  background: #f3f2f1;
+  color: #2b579a;
+}
+
 .sek-notes-editor[data-theme="light"] .sek-notes-editor__toolbar {
   background: #f3f2f1;
   border-color: #d2d0ce;
@@ -105,7 +179,8 @@
   border-color: #2b579a;
 }
 
-.sek-notes-editor[data-theme="light"] .sek-notes-editor__toolbar-heading-select {
+.sek-notes-editor[data-theme="light"] .sek-notes-editor__toolbar-heading-select,
+.sek-notes-editor[data-theme="light"] .sek-notes-editor__toolbar-font-select {
   background: #ffffff;
   border: 1px solid #d2d0ce;
   color: #1e1e1e;
@@ -122,6 +197,53 @@
 
 .sek-notes-editor[data-theme="light"] .sek-notes-editor__content .ProseMirror a {
   color: #2b579a;
+}
+
+.sek-notes-editor[data-theme="light"] .sek-notes-editor__content .ProseMirror table td,
+.sek-notes-editor[data-theme="light"] .sek-notes-editor__content .ProseMirror table th {
+  border-color: #d2d0ce;
+}
+
+.sek-notes-editor[data-theme="light"] .sek-notes-editor__wikilink {
+  color: #2b579a;
+  background: #2b579a14;
+}
+
+.sek-notes-editor[data-theme="light"] .sek-notes-editor__wikilink[data-status="not_found"] {
+  color: #a94442;
+  background: #a9444214;
+  text-decoration: line-through;
+}
+
+.sek-notes-editor[data-theme="light"] .sek-notes-editor__links-pane {
+  background: #faf9f8;
+  border-color: #d2d0ce;
+}
+
+.sek-notes-editor[data-theme="light"] .sek-notes-editor__outgoing-links li:hover,
+.sek-notes-editor[data-theme="light"] .sek-notes-editor__backlinks li:hover {
+  background: #e1dfdd;
+}
+
+.sek-notes-editor[data-theme="light"] .sek-notes-editor__outgoing-links li[data-status="not_found"] {
+  color: #a94442;
+  text-decoration: line-through;
+}
+
+.sek-notes-editor[data-theme="light"] .sek-notes-editor__image-search {
+  background: #ffffff;
+  border-color: #d2d0ce;
+  color: #1e1e1e;
+}
+
+.sek-notes-editor[data-theme="light"] .sek-notes-editor__image-search-input {
+  background: #ffffff;
+  border: 1px solid #d2d0ce;
+  color: #1e1e1e;
+}
+
+.sek-notes-editor[data-theme="light"] .sek-notes-editor__image-search-result {
+  border-color: #d2d0ce;
 }
 
 .sek-notes-editor[data-theme="light"] .sek-notes-editor__actions button {

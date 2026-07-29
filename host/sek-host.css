@@ -570,6 +570,29 @@ body {
   width: 100%;
 }
 
+/* Ribbon-lite tab strip (Home/Insert) sitting above the toolbar row — see
+   notes-host-theme.css for the ribbon color skin. */
+.sek-notes-editor__ribbon {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sek-notes-editor__ribbon-tabs {
+  display: flex;
+  gap: 2px;
+}
+
+.sek-notes-editor__ribbon-tab {
+  border: none;
+  background: none;
+  padding: 4px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: 4px 4px 0 0;
+}
+
 /* Word-like formatting toolbar — see notes-host-theme.css for the ribbon color skin. */
 .sek-notes-editor__toolbar {
   display: flex;
@@ -608,7 +631,8 @@ body {
   opacity: 0.4;
 }
 
-.sek-notes-editor__toolbar-heading-select {
+.sek-notes-editor__toolbar-heading-select,
+.sek-notes-editor__toolbar-font-select {
   padding: 4px 6px;
   border-radius: 3px;
   font-size: 13px;
@@ -626,6 +650,23 @@ body {
 .sek-notes-editor__toolbar-color-swatch:disabled {
   cursor: default;
   opacity: 0.4;
+}
+
+/* Highlight swatches are square, not circular, so they read as "highlighter" rather
+   than "text color" at a glance, same visual distinction Word itself makes. */
+.sek-notes-editor__toolbar-highlight-swatch {
+  border-radius: 3px;
+}
+
+/* Content + links pane sit side by side, Word-Navigation-Pane-style. Relative
+   positioning anchors the absolutely-positioned image-search popover to this box
+   rather than the whole viewport. */
+.sek-notes-editor__body {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  gap: 10px;
 }
 
 /* The rich-text surface: EditorContent renders a wrapper div (this class) around
@@ -682,9 +723,156 @@ body {
   margin-top: 3px;
 }
 
+.sek-notes-editor__content .ProseMirror table {
+  border-collapse: collapse;
+  margin: 0.6em 0;
+  width: 100%;
+}
+
+.sek-notes-editor__content .ProseMirror table td,
+.sek-notes-editor__content .ProseMirror table th {
+  border: 1px solid #ccc;
+  padding: 6px 8px;
+  vertical-align: top;
+}
+
+.sek-notes-editor__content .ProseMirror table th {
+  font-weight: 600;
+  text-align: left;
+}
+
+.sek-notes-editor__content .ProseMirror img {
+  max-width: 100%;
+  border-radius: 3px;
+}
+
+.sek-notes-editor__wikilink {
+  cursor: pointer;
+  border-radius: 2px;
+  padding: 0 1px;
+}
+
+/* Word's Navigation Pane, adapted: a titled side panel listing this note's outgoing
+   links and its backlinks as two labeled sections instead of two bare trailing lists. */
+.sek-notes-editor__links-pane {
+  flex-shrink: 0;
+  width: 200px;
+  overflow-y: auto;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  padding: 10px;
+}
+
+.sek-notes-editor__links-pane h3 {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin: 0 0 6px;
+  opacity: 0.7;
+}
+
+.sek-notes-editor__links-pane section + section {
+  margin-top: 16px;
+}
+
 .sek-notes-editor__outgoing-links,
 .sek-notes-editor__backlinks {
   font-size: 13px;
-  padding-left: 20px;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.sek-notes-editor__outgoing-links li,
+.sek-notes-editor__backlinks li {
+  padding: 4px 6px;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.sek-notes-editor__links-empty {
+  opacity: 0.55;
+  font-style: italic;
+  cursor: default !important;
+}
+
+/* SEK-04 image search popover — anchored within .sek-notes-editor__body so it overlays
+   near the toolbar's Insert-image button rather than the whole viewport. */
+.sek-notes-editor__image-search {
+  position: absolute;
+  top: 110px;
+  right: 220px;
+  width: 320px;
+  max-height: 400px;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  padding: 10px;
+  z-index: 10;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+.sek-notes-editor__image-search-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.sek-notes-editor__image-search-close {
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 13px;
+  padding: 2px 6px;
+}
+
+.sek-notes-editor__image-search-form {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.sek-notes-editor__image-search-input {
+  flex: 1;
+  min-width: 0;
+  padding: 5px 8px;
+  border-radius: 3px;
+  font-size: 13px;
+}
+
+.sek-notes-editor__image-search-status {
+  font-size: 12px;
+  opacity: 0.7;
   margin: 4px 0;
+}
+
+.sek-notes-editor__image-search-results {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  overflow-y: auto;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.sek-notes-editor__image-search-result {
+  border: 1px solid transparent;
+  border-radius: 4px;
+  padding: 0;
+  cursor: pointer;
+  overflow: hidden;
+  aspect-ratio: 1;
+}
+
+.sek-notes-editor__image-search-result img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }

@@ -10,14 +10,20 @@
  * API that Avalonia's NativeWebView exposes on every platform. The host resolves the
  * pending promise by calling `window.__sekHostReceive(json)` back via InvokeScript.
  * Auth/API calls live entirely on the C# side — this file never sees a session token.
+ *
+ * `onNavigateToNote` doesn't fit that request/response shape (it's a fire-and-forget
+ * void callback, not something awaiting a value back) — it posts a one-way
+ * `{ type: 'navigateToNote', noteId }` signal instead, the same pattern already used for
+ * `sekHostMounted`/`sekHostMountFailed` below.
  */
 import { createElement } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { NotesEditor, extractOutgoingLinks } from '../index.js';
 import type { Note, NotesEditorProps } from '../notes/types.js';
+import type { ImageInsert, ImageSearchResponse, ImageSearchResult } from '../image-search/types.js';
 import type { Result, SekError, UserContext } from '../types/common.js';
 
-type BridgeMethod = 'save' | 'delete' | 'resolveLink' | 'listBacklinks';
+type BridgeMethod = 'save' | 'delete' | 'resolveLink' | 'listBacklinks' | 'searchImages' | 'uploadImage';
 
 interface HostRequest {
   readonly requestId: string;
@@ -99,6 +105,13 @@ window.__sekHostMount = (json: string) => {
       onDelete: (noteId) => callHost<void>('delete', { noteId }),
       onResolveLink: (toNoteId) => callHost<Note>('resolveLink', { toNoteId }),
       onListBacklinks: (toNoteId) => callHost<readonly Note[]>('listBacklinks', { toNoteId }),
+      imageSearch: {
+        enabled: true,
+        onSearch: (query) => callHost<ImageSearchResponse>('searchImages', { query }),
+        onUploadImage: (result: ImageSearchResult) => callHost<ImageInsert>('uploadImage', { result }),
+      },
+      onNavigateToNote: (noteId) =>
+        window.chrome.webview.postMessage(JSON.stringify({ type: 'navigateToNote', noteId })),
     };
 
     root.render(createElement(NotesEditor, props));

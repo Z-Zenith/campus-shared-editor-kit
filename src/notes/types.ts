@@ -15,6 +15,7 @@
  */
 
 import type { Result, SekError, UserContext } from '../types/common.js';
+import type { ImageSearchProps } from '../image-search/types.js';
 
 /** A persisted note. Content is raw Markdown, not rendered HTML. */
 export interface Note {
@@ -69,6 +70,21 @@ export interface NotesEditorProps {
   readonly onResolveLink: (toNoteId: string) => Promise<Result<Note, SekError>>;
   /** Query backlinks (notes that link TO a given note). */
   readonly onListBacklinks: (toNoteId: string) => Promise<Result<Backlinks, SekError>>;
+  /**
+   * SEK-04 — built-in image search, rendered from the toolbar's "Insert image" button.
+   * Omit (or set `enabled: false`) to render that button disabled, per SEK-04's "Could"
+   * priority — the embedder may ship without it. `user` is intentionally omitted here
+   * versus the standalone ImageSearchProps shape: NotesEditor already has it from its own
+   * top-level `user` prop and passes it through, so the embedder doesn't duplicate it.
+   */
+  readonly imageSearch?: Omit<ImageSearchProps, 'user'>;
+  /**
+   * Called when the user clicks a resolved [[wikilink]]/[text](id:...) in the editor.
+   * Optional — omitting it leaves links styled but inert (no navigation), which is a valid
+   * embedder choice, not a degraded state. Not called for links that resolve to
+   * 'not_found' (there's nothing to navigate to).
+   */
+  readonly onNavigateToNote?: (noteId: string) => void;
   /** Optional theme override. Defaults to the embedder's design system. */
   readonly theme?: 'light' | 'dark' | 'system';
 }
