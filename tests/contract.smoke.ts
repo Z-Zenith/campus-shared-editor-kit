@@ -49,9 +49,10 @@ import type {
   ImageSearchResponse,
   ImageInsert,
   ImageSearchProps,
+  ImageSearchPanelProps,
 } from '../src/index.js';
 
-import { CodeEditor, LANGUAGE_LABELS, isSupportedLanguage } from '../src/index.js';
+import { CodeEditor, ImageSearchPanel, LANGUAGE_LABELS, isSupportedLanguage } from '../src/index.js';
 
 // ---- subpath imports also resolve (tree-shaking contract) ----
 import type { CodeEditorProps as CEP } from '../src/code-editor/index.js';
@@ -160,6 +161,36 @@ void _documentViewer;
 const _link: NoteLinkRef = { toNoteId: 'n2', anchor: 'see also' };
 void _link;
 
+// SEK-03/04 — NotesEditorProps compiles with the ribbon-lite additions
+// (imageSearch, onNavigateToNote), matching the _codeEditor/_documentViewer
+// pattern above — this exercises the new fields' shapes at compile time, not
+// just that the barrel export resolves.
+const _notesEditor: NotesEditorProps = {
+  user,
+  currentNote: null,
+  canEdit: true,
+  onSave: async (note: Note): Promise<Result<Note, SekError>> => ({ ok: true, value: note }),
+  onDelete: async (_noteId: string): Promise<Result<void, SekError>> => ({ ok: true, value: undefined }),
+  onResolveLink: async (_toNoteId: string): Promise<Result<Note, SekError>> => ({
+    ok: false,
+    error: { code: 'note_not_found', message: 'not found' },
+  }),
+  onListBacklinks: async (_toNoteId: string): Promise<Result<Backlinks, SekError>> => ({ ok: true, value: [] }),
+  imageSearch: {
+    enabled: true,
+    onSearch: async (_query: string): Promise<Result<ImageSearchResponse, SekError>> => ({
+      ok: true,
+      value: { query: _query, results: [], degraded: false },
+    }),
+    onUploadImage: async (_result: ImageSearchResult): Promise<Result<ImageInsert, SekError>> => ({
+      ok: true,
+      value: { embeddedUrl: 'content://img/x', altText: '', width: 1, height: 1, attribution: '' },
+    }),
+  },
+  onNavigateToNote: (_noteId: string) => {},
+};
+void _notesEditor;
+
 // SEK-04 — ImageInsert is the stable URL, not the source URL (per spec)
 const _imageInsert: ImageInsert = {
   embeddedUrl: 'content://img/abc',
@@ -184,6 +215,12 @@ declare const _codeEditorComponent: typeof CodeEditor;
 void _codeEditorComponent;
 const _isPythonSupported: boolean = isSupportedLanguage('python');
 void _isPythonSupported;
+
+// SEK-04 — ImageSearchPanel resolves from the barrel and its props shape compiles.
+declare const _imageSearchPanelComponent: typeof ImageSearchPanel;
+void _imageSearchPanelComponent;
+declare const _imageSearchPanelProps: ImageSearchPanelProps;
+void _imageSearchPanelProps;
 
 // Type-only re-exports compile (this would fail if any barrel or subpath
 // export broke) — one field per symbol instead of a separate alias + void

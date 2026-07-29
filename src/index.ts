@@ -16,7 +16,9 @@
  *   - SEK-01 (Code editor)            — Must — implemented (CodeEditor).
  *   - SEK-02 (Document viewer)        — Must — implemented (DocumentViewer).
  *   - SEK-03 (Markdown notes)         — Must — implemented (NotesEditor).
- *   - SEK-04 (Built-in image search)  — Could — interface only.
+ *   - SEK-04 (Built-in image search)  — Could — implemented (ImageSearchPanel,
+ *                                       rendered inside NotesEditor via the
+ *                                       optional `imageSearch` prop).
  *   - SEK-05 (Inking w/ diagrams)     — Won't, promoted — implemented
  *                                       (DocumentViewer's diagram-ink mode).
  *                                       Shapes are stored as vector points
@@ -100,4 +102,6 @@ export type {
   ImageSearchResponse,
   ImageInsert,
   ImageSearchProps,
+  ImageSearchPanelProps,
 } from './image-search/index.js';
+export { ImageSearchPanel } from './image-search/index.js';

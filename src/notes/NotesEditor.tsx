@@ -14,6 +14,11 @@
  * See ./tiptapNoteLink.ts for why a custom node is needed to keep `[[wikilinks]]` and
  * `[text](id:target)` links round-tripping correctly through Tiptap's Markdown
  * serializer (verified empirically, not assumed from docs).
+ *
+ * "Ribbon-lite" scope (toolbar tabs, font/paragraph/insert controls, restored SEK-04
+ * image search, clickable wikilinks): a deliberately achievable slice of "MS Office-like,"
+ * not a full Office clone — no real-time co-authoring, comments, or track-changes. See
+ * NotesToolbar.tsx for the toolbar half of this.
  */
 
 import {
@@ -29,6 +34,12 @@ import StarterKit from '@tiptap/starter-kit';
 import { Markdown } from '@tiptap/markdown';
 import { TaskList, TaskItem } from '@tiptap/extension-list';
 import { TextStyle, Color } from '@tiptap/extension-text-style';
+import { Underline } from '@tiptap/extension-underline';
+import { FontFamily } from '@tiptap/extension-font-family';
+import { TextAlign } from '@tiptap/extension-text-align';
+import { Highlight } from '@tiptap/extension-highlight';
+import { Image } from '@tiptap/extension-image';
+import { Table, TableRow, TableCell, TableHeader } from '@tiptap/extension-table';
 import type { SekError } from '../types/common.js';
 import type {
   Backlinks,
@@ -40,12 +51,16 @@ import type {
 import { extractOutgoingLinks, uniqueLinkTargetsKey } from './linkExtraction.js';
 import { NoteLink, unescapeNoteLinkBrackets } from './tiptapNoteLink.js';
 import { NotesToolbar } from './NotesToolbar.js';
+import { ImageSearchPanel } from '../image-search/ImageSearchPanel.js';
+import type { ImageInsert } from '../image-search/types.js';
 
 type LinkStatus = 'pending' | 'resolved' | 'not_found';
 
 // Module-scope and never recreated: a fresh array literal passed to useEditor on every
 // render would tear down and reconstruct the underlying ProseMirror instance each time,
-// losing cursor position and undo history.
+// losing cursor position and undo history. NoteLink's storage (callback/status data that
+// DOES change over time — see tiptapNoteLink.ts's NoteLinkStorage doc comment) is kept out
+// of this array on purpose and synced imperatively instead, in the effect below.
 const NOTES_EXTENSIONS = [
   StarterKit.configure({ link: false }),
   Markdown,
@@ -53,6 +68,15 @@ const NOTES_EXTENSIONS = [
   TaskItem.configure({ nested: false }),
   TextStyle,
   Color,
+  Underline,
+  FontFamily,
+  TextAlign.configure({ types: ['heading', 'paragraph'] }),
+  Highlight.configure({ multicolor: true }),
+  Image,
+  Table.configure({ resizable: false }),
+  TableRow,
+  TableHeader,
+  TableCell,
   NoteLink,
 ];
 
@@ -64,7 +88,7 @@ function newNoteId(): string {
 
 export const NotesEditor = forwardRef<NotesEditorApi, NotesEditorProps>(
   function NotesEditor(
-    { user, currentNote, canEdit, onSave, onDelete, onResolveLink, onListBacklinks, theme },
+    { user, currentNote, canEdit, onSave, onDelete, onResolveLink, onListBacklinks, imageSearch, onNavigateToNote, theme },
     ref
   ) {
     const [title, setTitle] = useState(currentNote?.title ?? '');
@@ -72,6 +96,7 @@ export const NotesEditor = forwardRef<NotesEditorApi, NotesEditorProps>(
     const [backlinks, setBacklinks] = useState<Backlinks>([]);
     const [linkStatuses, setLinkStatuses] = useState<Record<string, LinkStatus>>({});
     const [error, setError] = useState<SekError | null>(null);
+    const [isImageSearchOpen, setIsImageSearchOpen] = useState(false);
 
     // Imperative-handle methods close over stale state without this — keep a
     // ref mirroring the latest draft so getMarkdown()/getOutgoingLinks() are
@@ -172,6 +197,20 @@ export const NotesEditor = forwardRef<NotesEditorApi, NotesEditorProps>(
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [linkTargetsKey]);
 
+    // Keeps NoteLink's ProseMirror-plugin storage (tiptapNoteLink.ts's NoteLinkStorage)
+    // in sync with the latest callback/status data, without reconstructing
+    // NOTES_EXTENSIONS (which would tear down the editor — see that array's own comment).
+    // Dispatching a no-op transaction after updating storage forces ProseMirror to
+    // recompute the plugin's decorations, so a link's data-status attribute (and thus its
+    // "not found" styling) updates live as resolution results come in, not just on the
+    // next doc-changing edit.
+    useEffect(() => {
+      if (!editor) return;
+      editor.storage.noteLink.onNavigate = onNavigateToNote;
+      editor.storage.noteLink.getStatus = (toNoteId: string) => linkStatuses[toNoteId] ?? 'pending';
+      editor.view.dispatch(editor.state.tr);
+    }, [editor, onNavigateToNote, linkStatuses]);
+
     useImperativeHandle(
       ref,
       (): NotesEditorApi => ({
@@ -203,6 +242,10 @@ export const NotesEditor = forwardRef<NotesEditorApi, NotesEditorProps>(
       if (!result.ok) setError(result.error);
     };
 
+    const handleImageInsert = (insert: ImageInsert) => {
+      editor?.chain().focus().setImage({ src: insert.embeddedUrl, alt: insert.altText }).run();
+    };
+
     // Resolve 'system' against the OS/embedder color scheme, live — mirrors
     // CodeEditor.tsx's identical block, so both editor tabs in the same shell
     // flip together if the OS theme changes mid-session.
@@ -232,8 +275,55 @@ export const NotesEditor = forwardRef<NotesEditorApi, NotesEditorProps>(
           placeholder="Untitled note"
           disabled={!canEdit}
         />
-        <NotesToolbar editor={editor} canEdit={canEdit} />
-        <EditorContent editor={editor} className="sek-notes-editor__content" />
+        <NotesToolbar
+          editor={editor}
+          canEdit={canEdit}
+          imageSearchEnabled={imageSearch?.enabled}
+          onOpenImageSearch={() => setIsImageSearchOpen(true)}
+        />
+        <div className="sek-notes-editor__body">
+          <EditorContent editor={editor} className="sek-notes-editor__content" />
+          {imageSearch && (
+            <ImageSearchPanel
+              {...imageSearch}
+              user={user}
+              open={isImageSearchOpen}
+              onClose={() => setIsImageSearchOpen(false)}
+              onInsert={handleImageInsert}
+            />
+          )}
+          <aside className="sek-notes-editor__links-pane">
+            <section>
+              <h3>Links from this note</h3>
+              <ul className="sek-notes-editor__outgoing-links">
+                {outgoingLinks.length === 0 && <li className="sek-notes-editor__links-empty">No links yet.</li>}
+                {outgoingLinks.map((link, i) => {
+                  const status = linkStatuses[link.toNoteId] ?? 'pending';
+                  return (
+                    <li
+                      key={`${link.toNoteId}-${i}`}
+                      data-status={status}
+                      onClick={() => status === 'resolved' && onNavigateToNote?.(link.toNoteId)}
+                    >
+                      {link.anchor}
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
+            <section>
+              <h3>Linked from elsewhere</h3>
+              <ul className="sek-notes-editor__backlinks">
+                {backlinks.length === 0 && <li className="sek-notes-editor__links-empty">No backlinks yet.</li>}
+                {backlinks.map((note) => (
+                  <li key={note.id} onClick={() => onNavigateToNote?.(note.id)}>
+                    {note.title}
+                  </li>
+                ))}
+              </ul>
+            </section>
+          </aside>
+        </div>
         {canEdit && (
           <div className="sek-notes-editor__actions">
             <button type="button" onClick={handleSave}>
@@ -246,21 +336,6 @@ export const NotesEditor = forwardRef<NotesEditorApi, NotesEditorProps>(
             )}
           </div>
         )}
-        <ul className="sek-notes-editor__outgoing-links">
-          {outgoingLinks.map((link, i) => (
-            <li
-              key={`${link.toNoteId}-${i}`}
-              data-status={linkStatuses[link.toNoteId] ?? 'pending'}
-            >
-              {link.anchor}
-            </li>
-          ))}
-        </ul>
-        <ul className="sek-notes-editor__backlinks">
-          {backlinks.map((note) => (
-            <li key={note.id}>{note.title}</li>
-          ))}
-        </ul>
       </div>
     );
   }
