@@ -6,7 +6,7 @@
  * a multi-file project visually, not just cosmetic. Unstyled (BEM class hooks only) per
  * SEK's styling convention.
  */
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import type { CSSProperties } from 'react';
 import type { CodeFile, Language } from './types.js';
 import { LANGUAGE_ICONS } from './types.js';
@@ -61,6 +61,8 @@ function Node({
   activeFilePath,
   entryFilePath,
   canEdit,
+  collapsedFolders,
+  onToggleFolder,
   onSelect,
   onDeleteFile,
   onSetEntry,
@@ -70,30 +72,47 @@ function Node({
   activeFilePath: string;
   entryFilePath: string;
   canEdit: boolean;
+  collapsedFolders: ReadonlySet<string>;
+  onToggleFolder: (path: string) => void;
   onSelect: (path: string) => void;
   onDeleteFile: (path: string) => void;
   onSetEntry: (path: string) => void;
 }) {
   if (!node.isFile) {
+    // VS Code-style expand/collapse: collapsed by default only if explicitly toggled
+    // (the set starts empty, so every folder starts expanded — matches the pre-existing
+    // always-expanded behavior until a student actually collapses one).
+    const isCollapsed = collapsedFolders.has(node.path);
     return (
       <div className="sek-code-editor__tree-folder" style={{ paddingLeft: depth * 12 }}>
-        <span className="sek-code-editor__tree-folder-name">
-          <span className="sek-code-editor__file-icon" aria-hidden="true">📁</span>
+        <button
+          type="button"
+          className="sek-code-editor__tree-folder-name"
+          onClick={() => onToggleFolder(node.path)}
+          aria-expanded={!isCollapsed}
+        >
+          <span className="sek-code-editor__tree-folder-chevron" aria-hidden="true">
+            {isCollapsed ? '▶' : '▼'}
+          </span>
+          <span className="sek-code-editor__file-icon" aria-hidden="true">{isCollapsed ? '📁' : '📂'}</span>
           {node.name}
-        </span>
-        {node.children.map((child) => (
-          <Node
-            key={`${child.path}-${child.isFile}`}
-            node={child}
-            depth={depth + 1}
-            activeFilePath={activeFilePath}
-            entryFilePath={entryFilePath}
-            canEdit={canEdit}
-            onSelect={onSelect}
-            onDeleteFile={onDeleteFile}
-            onSetEntry={onSetEntry}
-          />
-        ))}
+        </button>
+        {!isCollapsed &&
+          node.children.map((child) => (
+            <Node
+              key={`${child.path}-${child.isFile}`}
+              node={child}
+              depth={depth + 1}
+              activeFilePath={activeFilePath}
+              entryFilePath={entryFilePath}
+              canEdit={canEdit}
+              collapsedFolders={collapsedFolders}
+              onToggleFolder={onToggleFolder}
+              onSelect={onSelect}
+              onDeleteFile={onDeleteFile}
+              onSetEntry={onSetEntry}
+            />
+          ))}
       </div>
     );
   }
@@ -157,6 +176,19 @@ export function FileExplorer({
   style,
 }: FileExplorerProps) {
   const tree = useMemo(() => buildTree(files), [files]);
+  const [collapsedFolders, setCollapsedFolders] = useState<ReadonlySet<string>>(() => new Set());
+
+  const handleToggleFolder = (path: string) => {
+    setCollapsedFolders((prev) => {
+      const next = new Set(prev);
+      if (next.has(path)) {
+        next.delete(path);
+      } else {
+        next.add(path);
+      }
+      return next;
+    });
+  };
 
   return (
     <div className="sek-code-editor__sidebar" style={style}>
@@ -183,6 +215,8 @@ export function FileExplorer({
             activeFilePath={activeFilePath}
             entryFilePath={entryFilePath}
             canEdit={canEdit}
+            collapsedFolders={collapsedFolders}
+            onToggleFolder={handleToggleFolder}
             onSelect={onSelect}
             onDeleteFile={onDeleteFile}
             onSetEntry={onSetEntry}

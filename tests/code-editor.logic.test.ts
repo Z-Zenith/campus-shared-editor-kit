@@ -12,6 +12,7 @@ import assert from 'node:assert/strict';
 import {
   buildStarterProject,
   defaultFilenameForLanguage,
+  fuzzyMatchFiles,
   inferLanguageFromExtension,
   isSupportedLanguage,
   resizedSize,
@@ -220,4 +221,27 @@ test('resizedSize clamps to max when the delta would go above it', () => {
 
 test('resizedSize leaves size unchanged for a zero delta', () => {
   assert.equal(resizedSize(240, 0, 160, 480), 240);
+});
+
+// SEK-01 shell fidelity: command-palette "go to file" fuzzy matching.
+test('fuzzyMatchFiles returns every path, alphabetical, for an empty query', () => {
+  assert.deepEqual(fuzzyMatchFiles(['b.py', 'a.py'], ''), ['a.py', 'b.py']);
+  assert.deepEqual(fuzzyMatchFiles(['b.py', 'a.py'], '   '), ['a.py', 'b.py']);
+});
+
+test('fuzzyMatchFiles matches non-contiguous subsequences, case-insensitively', () => {
+  const paths = ['src/main.py', 'src/utils/helpers.py', 'README.md'];
+  assert.deepEqual(fuzzyMatchFiles(paths, 'mp'), ['src/main.py']);
+  assert.deepEqual(fuzzyMatchFiles(paths, 'MAIN'), ['src/main.py']);
+});
+
+test('fuzzyMatchFiles excludes paths missing any query character in order', () => {
+  assert.deepEqual(fuzzyMatchFiles(['main.py'], 'zzz'), []);
+  // 'p' then 'm' is out of order relative to "main.py" ('m' comes before 'p').
+  assert.deepEqual(fuzzyMatchFiles(['main.py'], 'pm'), []);
+});
+
+test('fuzzyMatchFiles ranks an earlier, tighter match ahead of a longer/deeper one', () => {
+  const paths = ['src/domain/main.py', 'main.py'];
+  assert.deepEqual(fuzzyMatchFiles(paths, 'main'), ['main.py', 'src/domain/main.py']);
 });

@@ -33,6 +33,7 @@ import { FileExplorer } from './FileExplorer.js';
 import { FileTabs } from './FileTabs.js';
 import { OutputPanel } from './OutputPanel.js';
 import { ResizeHandle } from './ResizeHandle.js';
+import { CommandPalette } from './CommandPalette.js';
 
 // VS Code-like defaults/bounds for the two resizable panes below — matches the fixed sizes
 // this layout used before resizing existed (240px sidebar, 220px output panel), just no
@@ -119,6 +120,12 @@ export const CodeEditor = forwardRef<CodeEditorApi, CodeEditorProps>(
     const [newFileLanguage, setNewFileLanguage] = useState<Language>(fallbackLanguage);
     const [sidebarWidth, setSidebarWidth] = useState(SIDEBAR_DEFAULT_WIDTH);
     const [outputHeight, setOutputHeight] = useState(OUTPUT_DEFAULT_HEIGHT);
+    // VS Code shell fidelity: status-bar cursor position and the Ctrl+Shift+P command
+    // palette. Cursor position is tracked via Monaco's own event (see handleEditorMount)
+    // rather than derived from `files`, since it changes on every keystroke/click without
+    // the underlying content necessarily changing.
+    const [cursorPosition, setCursorPosition] = useState<{ line: number; column: number }>({ line: 1, column: 1 });
+    const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
 
     const activeFile = files.find((f) => f.path === activeFilePath) ?? files[0];
 
@@ -314,7 +321,32 @@ export const CodeEditor = forwardRef<CodeEditorApi, CodeEditorProps>(
       editorInstance.addCommand(monaco.KeyCode.F5, () => {
         void runProject(projectRef.current);
       });
+      editorInstance.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KeyP, () => {
+        setIsCommandPaletteOpen(true);
+      });
+
+      const updateCursorPosition = () => {
+        const position = editorInstance.getPosition();
+        if (position) setCursorPosition({ line: position.lineNumber, column: position.column });
+      };
+      updateCursorPosition();
+      editorInstance.onDidChangeCursorPosition(updateCursorPosition);
     };
+
+    // Ctrl+Shift+P needs to work even when focus isn't inside Monaco (e.g. the file
+    // explorer, the stdin box) — Monaco's own addCommand above only fires while the
+    // editor itself has focus, matching VS Code's own "palette opens from anywhere in
+    // the window" behavior rather than just from the text buffer.
+    useEffect(() => {
+      const handler = (e: KeyboardEvent) => {
+        if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'p') {
+          e.preventDefault();
+          setIsCommandPaletteOpen(true);
+        }
+      };
+      window.addEventListener('keydown', handler);
+      return () => window.removeEventListener('keydown', handler);
+    }, []);
 
     // Resolve 'system' against the OS/embedder color scheme, live — WebView2
     // forwards prefers-color-scheme, so this flips without a remount if the
@@ -428,7 +460,7 @@ export const CodeEditor = forwardRef<CodeEditorApi, CodeEditorProps>(
               )}
             </div>
             <div className="sek-code-editor__statusbar">
-              <span>
+              <span className="sek-code-editor__statusbar-left">
                 {activeFile && (
                   <span className="sek-code-editor__file-icon" aria-hidden="true">
                     {LANGUAGE_ICONS[activeFile.language]}
@@ -436,7 +468,14 @@ export const CodeEditor = forwardRef<CodeEditorApi, CodeEditorProps>(
                 )}
                 {activeFile ? LANGUAGE_LABELS[activeFile.language] : ''}
               </span>
-              <span>{activeFilePath}</span>
+              <span className="sek-code-editor__statusbar-right">
+                <span>{activeFilePath}</span>
+                {activeFile && (
+                  <span className="sek-code-editor__statusbar-position">
+                    Ln {cursorPosition.line}, Col {cursorPosition.column}
+                  </span>
+                )}
+              </span>
             </div>
             <div className="sek-code-editor__stdin-wrap">
               <label className="sek-code-editor__stdin-label" htmlFor="sek-code-editor-stdin">
@@ -503,6 +542,17 @@ export const CodeEditor = forwardRef<CodeEditorApi, CodeEditorProps>(
             />
           </div>
         </div>
+        {isCommandPaletteOpen && (
+          <CommandPalette
+            filePaths={files.map((f) => f.path)}
+            canRun={canRun}
+            canSave={canEdit && !!onSave}
+            onSelectFile={handleSelectFile}
+            onRun={() => void runProject(projectRef.current)}
+            onSave={() => void saveProject()}
+            onClose={() => setIsCommandPaletteOpen(false)}
+          />
+        )}
       </div>
     );
   }

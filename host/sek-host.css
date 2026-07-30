@@ -138,9 +138,25 @@ body {
 .sek-code-editor__tree-folder-name {
   display: flex;
   align-items: center;
+  width: 100%;
   padding: 4px 8px;
   opacity: 0.75;
   font-size: 12px;
+  /* Reset from <span> to <button> (expand/collapse needs a click target) — keep it
+     looking identical to the plain label it replaced. */
+  border: none;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+}
+
+.sek-code-editor__tree-folder-chevron {
+  display: inline-block;
+  width: 12px;
+  margin-right: 2px;
+  font-size: 9px;
+  flex-shrink: 0;
 }
 
 .sek-code-editor__tree-file {
@@ -303,6 +319,71 @@ body {
   padding: 4px 12px;
   font-size: 12px;
   flex-shrink: 0;
+}
+
+.sek-code-editor__statusbar-left,
+.sek-code-editor__statusbar-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.sek-code-editor__statusbar-position {
+  opacity: 0.9;
+}
+
+/* Command palette (Ctrl+Shift+P): a centered, VS Code Quick-Open-style overlay. */
+.sek-code-editor__command-palette-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding-top: 12vh;
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.sek-code-editor__command-palette {
+  width: min(560px, 90vw);
+  max-height: 60vh;
+  display: flex;
+  flex-direction: column;
+  border-radius: 6px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  overflow: hidden;
+}
+
+.sek-code-editor__command-palette-input {
+  border: none;
+  padding: 12px 14px;
+  font-size: 14px;
+  font-family: var(--sek-sans);
+  outline: none;
+}
+
+.sek-code-editor__command-palette-list {
+  list-style: none;
+  margin: 0;
+  padding: 4px 0;
+  overflow-y: auto;
+}
+
+.sek-code-editor__command-palette-item {
+  padding: 6px 14px;
+  font-size: 13px;
+  font-family: var(--sek-mono);
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sek-code-editor__command-palette-empty {
+  padding: 10px 14px;
+  font-size: 13px;
+  opacity: 0.6;
+  font-family: var(--sek-sans);
 }
 
 .sek-code-editor__stdin-wrap {

@@ -232,6 +232,38 @@
   background: #ffffff1a;
 }
 
+.sek-code-editor[data-theme="dark"] .sek-code-editor__tree-folder-name {
+  color: #bbbbbb;
+}
+
+.sek-code-editor[data-theme="dark"] .sek-code-editor__tree-folder-name:hover {
+  background: #ffffff0d;
+}
+
+.sek-code-editor[data-theme="dark"] .sek-code-editor__command-palette {
+  background: #252526;
+  border: 1px solid #454545;
+}
+
+.sek-code-editor[data-theme="dark"] .sek-code-editor__command-palette-input {
+  background: #3c3c3c;
+  color: #cccccc;
+  border-bottom: 1px solid #454545;
+}
+
+.sek-code-editor[data-theme="dark"] .sek-code-editor__command-palette-item {
+  color: #cccccc;
+}
+
+.sek-code-editor[data-theme="dark"] .sek-code-editor__command-palette-item[data-selected="true"] {
+  background: #04395e;
+  color: #ffffff;
+}
+
+.sek-code-editor[data-theme="dark"] .sek-code-editor__command-palette-empty {
+  color: #969696;
+}
+
 /* Light theme: close to VS Code's default Light+ palette. */
 .sek-code-editor[data-theme="light"] {
   background: #ffffff;
@@ -432,4 +464,36 @@
 
 .sek-code-editor[data-theme="light"] .sek-code-editor__terminal-restart:hover:not(:disabled) {
   background: #0000001a;
+}
+
+.sek-code-editor[data-theme="light"] .sek-code-editor__tree-folder-name {
+  color: #6f6f6f;
+}
+
+.sek-code-editor[data-theme="light"] .sek-code-editor__tree-folder-name:hover {
+  background: #0000000d;
+}
+
+.sek-code-editor[data-theme="light"] .sek-code-editor__command-palette {
+  background: #ffffff;
+  border: 1px solid #cecece;
+}
+
+.sek-code-editor[data-theme="light"] .sek-code-editor__command-palette-input {
+  background: #ffffff;
+  color: #1e1e1e;
+  border-bottom: 1px solid #e7e7e7;
+}
+
+.sek-code-editor[data-theme="light"] .sek-code-editor__command-palette-item {
+  color: #1e1e1e;
+}
+
+.sek-code-editor[data-theme="light"] .sek-code-editor__command-palette-item[data-selected="true"] {
+  background: #e4e6f1;
+  color: #1e1e1e;
+}
+
+.sek-code-editor[data-theme="light"] .sek-code-editor__command-palette-empty {
+  color: #6f6f6f;
 }
