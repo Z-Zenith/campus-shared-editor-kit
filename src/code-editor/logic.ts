@@ -249,3 +249,62 @@ export function buildStarterProject(language: Language, filename: string, conten
 export function resizedSize(startSize: number, delta: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, startSize + delta));
 }
+
+/**
+ * B2 live preview (SDA/SEK plan): languages whose "run" is really "start a server" or
+ * "render a page" rather than a batch stdout/stderr run — these get a Preview action
+ * (onRunPreview) alongside/instead of Run. html/css/javascript render as static pages;
+ * nodejs/python are the persistent-server family (see campus-backend's
+ * PreviewSessionService for the static-vs-persistent split this mirrors).
+ */
+const PREVIEWABLE_LANGUAGES: ReadonlySet<Language> = new Set(['html', 'css', 'javascript', 'nodejs', 'python']);
+
+export function isPreviewableLanguage(language: Language): boolean {
+  return PREVIEWABLE_LANGUAGES.has(language);
+}
+
+/**
+ * Command-palette file switcher (SEK-01 shell-fidelity pass): subsequence fuzzy match,
+ * VS Code's own "Go to File" style — every character of `query` must appear in the
+ * candidate path in order, not necessarily contiguously, case-insensitive. An empty
+ * query matches everything (so the palette shows the full file list before typing).
+ * Results are ordered by match quality (earlier/tighter matches first), then
+ * alphabetically as a stable tiebreaker — pure and independent of React/Monaco so it's
+ * unit-testable the same way as every other helper in this module.
+ */
+export function fuzzyMatchFiles(paths: readonly string[], query: string): string[] {
+  const trimmed = query.trim().toLowerCase();
+  if (!trimmed) {
+    return [...paths].sort((a, b) => a.localeCompare(b));
+  }
+
+  const scored: Array<{ path: string; score: number }> = [];
+  for (const path of paths) {
+    const score = subsequenceScore(path.toLowerCase(), trimmed);
+    if (score !== null) {
+      scored.push({ path, score });
+    }
+  }
+
+  scored.sort((a, b) => a.score - b.score || a.path.localeCompare(b.path));
+  return scored.map((s) => s.path);
+}
+
+/**
+ * Returns null if `query`'s characters don't all appear in `text` in order. Otherwise
+ * returns a score where lower is a better match — the index of the first match plus the
+ * total span consumed, so "main.py" scores better for query "main" than
+ * "src/domain/main.py" does (earlier, tighter match wins).
+ */
+function subsequenceScore(text: string, query: string): number | null {
+  let textIndex = 0;
+  let firstMatchIndex = -1;
+  for (const ch of query) {
+    const found = text.indexOf(ch, textIndex);
+    if (found === -1) return null;
+    if (firstMatchIndex === -1) firstMatchIndex = found;
+    textIndex = found + 1;
+  }
+  const span = textIndex - firstMatchIndex;
+  return firstMatchIndex + span;
+}

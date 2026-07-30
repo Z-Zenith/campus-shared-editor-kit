@@ -25,6 +25,7 @@ import { LANGUAGE_ICONS, LANGUAGE_LABELS } from './types.js';
 import {
   buildStarterProject,
   defaultFilenameForLanguage,
+  isPreviewableLanguage,
   isSupportedLanguage,
   starterSnippetForLanguage,
   validateProject,
@@ -33,6 +34,7 @@ import { FileExplorer } from './FileExplorer.js';
 import { FileTabs } from './FileTabs.js';
 import { OutputPanel } from './OutputPanel.js';
 import { ResizeHandle } from './ResizeHandle.js';
+import { CommandPalette } from './CommandPalette.js';
 
 // VS Code-like defaults/bounds for the two resizable panes below — matches the fixed sizes
 // this layout used before resizing existed (240px sidebar, 220px output panel), just no
@@ -88,6 +90,7 @@ export const CodeEditor = forwardRef<CodeEditorApi, CodeEditorProps>(
       onTerminalStart,
       onTerminalExec,
       onTerminalClose,
+      onRunPreview,
     },
     ref
   ) {
@@ -119,6 +122,17 @@ export const CodeEditor = forwardRef<CodeEditorApi, CodeEditorProps>(
     const [newFileLanguage, setNewFileLanguage] = useState<Language>(fallbackLanguage);
     const [sidebarWidth, setSidebarWidth] = useState(SIDEBAR_DEFAULT_WIDTH);
     const [outputHeight, setOutputHeight] = useState(OUTPUT_DEFAULT_HEIGHT);
+    // VS Code shell fidelity: status-bar cursor position and the Ctrl+Shift+P command
+    // palette. Cursor position is tracked via Monaco's own event (see handleEditorMount)
+    // rather than derived from `files`, since it changes on every keystroke/click without
+    // the underlying content necessarily changing.
+    const [cursorPosition, setCursorPosition] = useState<{ line: number; column: number }>({ line: 1, column: 1 });
+    const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
+    // B2 live preview: 'idle' | 'starting' | 'opened' | error message string. SEK itself
+    // never renders the preview (no iframe here) — the embedder opens previewUrl however
+    // fits its own UI (e.g. a new tab in its own built-in browser); this state is purely
+    // for the button's own feedback while the request is in flight.
+    const [previewStatus, setPreviewStatus] = useState<'idle' | 'starting' | 'opened' | string>('idle');
 
     const activeFile = files.find((f) => f.path === activeFilePath) ?? files[0];
 
@@ -175,6 +189,25 @@ export const CodeEditor = forwardRef<CodeEditorApi, CodeEditorProps>(
       }
       return outcome;
     }, []);
+
+    const runPreview = useCallback(async () => {
+      if (!onRunPreview) return;
+      const validationErr = validateProject(projectRef.current);
+      if (validationErr) {
+        setError(validationErr);
+        return;
+      }
+      setPreviewStatus('starting');
+      setError(null);
+      const outcome = await onRunPreview(projectRef.current);
+      if (outcome.ok) {
+        setPreviewStatus('opened');
+      } else {
+        setPreviewStatus(outcome.error.message);
+        setError(outcome.error);
+      }
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [onRunPreview]);
 
     const saveProject = useCallback(async () => {
       if (!canEdit || !onSaveRef.current) return;
@@ -314,7 +347,32 @@ export const CodeEditor = forwardRef<CodeEditorApi, CodeEditorProps>(
       editorInstance.addCommand(monaco.KeyCode.F5, () => {
         void runProject(projectRef.current);
       });
+      editorInstance.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KeyP, () => {
+        setIsCommandPaletteOpen(true);
+      });
+
+      const updateCursorPosition = () => {
+        const position = editorInstance.getPosition();
+        if (position) setCursorPosition({ line: position.lineNumber, column: position.column });
+      };
+      updateCursorPosition();
+      editorInstance.onDidChangeCursorPosition(updateCursorPosition);
     };
+
+    // Ctrl+Shift+P needs to work even when focus isn't inside Monaco (e.g. the file
+    // explorer, the stdin box) — Monaco's own addCommand above only fires while the
+    // editor itself has focus, matching VS Code's own "palette opens from anywhere in
+    // the window" behavior rather than just from the text buffer.
+    useEffect(() => {
+      const handler = (e: KeyboardEvent) => {
+        if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'p') {
+          e.preventDefault();
+          setIsCommandPaletteOpen(true);
+        }
+      };
+      window.addEventListener('keydown', handler);
+      return () => window.removeEventListener('keydown', handler);
+    }, []);
 
     // Resolve 'system' against the OS/embedder color scheme, live — WebView2
     // forwards prefers-color-scheme, so this flips without a remount if the
@@ -428,7 +486,7 @@ export const CodeEditor = forwardRef<CodeEditorApi, CodeEditorProps>(
               )}
             </div>
             <div className="sek-code-editor__statusbar">
-              <span>
+              <span className="sek-code-editor__statusbar-left">
                 {activeFile && (
                   <span className="sek-code-editor__file-icon" aria-hidden="true">
                     {LANGUAGE_ICONS[activeFile.language]}
@@ -436,7 +494,14 @@ export const CodeEditor = forwardRef<CodeEditorApi, CodeEditorProps>(
                 )}
                 {activeFile ? LANGUAGE_LABELS[activeFile.language] : ''}
               </span>
-              <span>{activeFilePath}</span>
+              <span className="sek-code-editor__statusbar-right">
+                <span>{activeFilePath}</span>
+                {activeFile && (
+                  <span className="sek-code-editor__statusbar-position">
+                    Ln {cursorPosition.line}, Col {cursorPosition.column}
+                  </span>
+                )}
+              </span>
             </div>
             <div className="sek-code-editor__stdin-wrap">
               <label className="sek-code-editor__stdin-label" htmlFor="sek-code-editor-stdin">
@@ -455,7 +520,7 @@ export const CodeEditor = forwardRef<CodeEditorApi, CodeEditorProps>(
                 placeholder="Optional input piped to the program when it runs"
               />
             </div>
-            {(canRun || onSave) && (
+            {(canRun || onSave || onRunPreview) && (
               <div className="sek-code-editor__actions">
                 {canRun && (
                   <button
@@ -469,6 +534,23 @@ export const CodeEditor = forwardRef<CodeEditorApi, CodeEditorProps>(
                     {!running && <span className="sek-code-editor__button-hint">F5</span>}
                   </button>
                 )}
+                {/* B2 live preview: only offered for languages whose "run" is really
+                    "start a server"/"render a page" — see isPreviewableLanguage. SEK
+                    never renders the result itself; the embedder opens previewUrl
+                    however fits its own UI (see onRunPreview's doc comment). */}
+                {canRun && onRunPreview && activeFile && isPreviewableLanguage(activeFile.language) && (
+                  <button
+                    type="button"
+                    className="sek-code-editor__preview-button"
+                    onClick={() => void runPreview()}
+                    disabled={previewStatus === 'starting'}
+                  >
+                    <span className="sek-code-editor__button-icon" aria-hidden="true">
+                      {previewStatus === 'starting' ? '' : '🔗'}
+                    </span>
+                    {previewStatus === 'starting' ? 'Starting preview…' : 'Preview'}
+                  </button>
+                )}
                 {canEdit && onSave && (
                   <button
                     type="button"
@@ -480,6 +562,11 @@ export const CodeEditor = forwardRef<CodeEditorApi, CodeEditorProps>(
                     {saving ? 'Saving…' : 'Save'}
                     {!saving && <span className="sek-code-editor__button-hint">Ctrl+S</span>}
                   </button>
+                )}
+                {previewStatus === 'opened' && (
+                  <span className="sek-code-editor__preview-status" role="status">
+                    Opened in Browser tab
+                  </span>
                 )}
               </div>
             )}
@@ -503,6 +590,17 @@ export const CodeEditor = forwardRef<CodeEditorApi, CodeEditorProps>(
             />
           </div>
         </div>
+        {isCommandPaletteOpen && (
+          <CommandPalette
+            filePaths={files.map((f) => f.path)}
+            canRun={canRun}
+            canSave={canEdit && !!onSave}
+            onSelectFile={handleSelectFile}
+            onRun={() => void runProject(projectRef.current)}
+            onSave={() => void saveProject()}
+            onClose={() => setIsCommandPaletteOpen(false)}
+          />
+        )}
       </div>
     );
   }

@@ -219,6 +219,17 @@ export interface CodeEditorProps {
   readonly onTerminalStart?: (files: readonly CodeFile[]) => Promise<Result<{ sessionId: string }, SekError>>;
   readonly onTerminalExec?: (sessionId: string, command: string) => Promise<Result<TerminalExecResult, SekError>>;
   readonly onTerminalClose?: (sessionId: string) => Promise<Result<void, SekError>>;
+  /**
+   * B2 live preview (SDA/SEK plan) — optional, hides the Preview action when absent (same
+   * convention as onSave/onTerminalStart). Only offered for languages whose "run" is
+   * really "start a server" or "render a page" (html/css/javascript/nodejs/python — see
+   * isPreviewableLanguage in logic.ts), distinct from onRun's batch stdout/stderr model.
+   * The embedder is responsible for actually rendering previewUrl (e.g. opening it as a
+   * tab in its own built-in browser) — SEK does not render an iframe itself; see
+   * OutputPanel.tsx's Preview button for why (multi-file relative-path projects need a
+   * real file server, not a `srcdoc` sandbox).
+   */
+  readonly onRunPreview?: (project: CodeProject) => Promise<Result<{ previewUrl: string }, SekError>>;
 }
 
 /**
