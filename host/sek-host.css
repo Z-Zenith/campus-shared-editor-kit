@@ -447,6 +447,13 @@ body {
   border-radius: 3px;
 }
 
+.sek-code-editor__preview-status {
+  display: inline-flex;
+  align-items: center;
+  font-size: 12px;
+  font-family: var(--sek-sans);
+}
+
 .sek-code-editor__output-panel {
   /* Height comes from CodeEditor.tsx's resizable-output-panel state (inline style) — see
      ResizeHandle.tsx and the __output-resize-handle rule above. */

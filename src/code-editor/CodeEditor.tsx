@@ -25,6 +25,7 @@ import { LANGUAGE_ICONS, LANGUAGE_LABELS } from './types.js';
 import {
   buildStarterProject,
   defaultFilenameForLanguage,
+  isPreviewableLanguage,
   isSupportedLanguage,
   starterSnippetForLanguage,
   validateProject,
@@ -89,6 +90,7 @@ export const CodeEditor = forwardRef<CodeEditorApi, CodeEditorProps>(
       onTerminalStart,
       onTerminalExec,
       onTerminalClose,
+      onRunPreview,
     },
     ref
   ) {
@@ -126,6 +128,11 @@ export const CodeEditor = forwardRef<CodeEditorApi, CodeEditorProps>(
     // the underlying content necessarily changing.
     const [cursorPosition, setCursorPosition] = useState<{ line: number; column: number }>({ line: 1, column: 1 });
     const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
+    // B2 live preview: 'idle' | 'starting' | 'opened' | error message string. SEK itself
+    // never renders the preview (no iframe here) — the embedder opens previewUrl however
+    // fits its own UI (e.g. a new tab in its own built-in browser); this state is purely
+    // for the button's own feedback while the request is in flight.
+    const [previewStatus, setPreviewStatus] = useState<'idle' | 'starting' | 'opened' | string>('idle');
 
     const activeFile = files.find((f) => f.path === activeFilePath) ?? files[0];
 
@@ -182,6 +189,25 @@ export const CodeEditor = forwardRef<CodeEditorApi, CodeEditorProps>(
       }
       return outcome;
     }, []);
+
+    const runPreview = useCallback(async () => {
+      if (!onRunPreview) return;
+      const validationErr = validateProject(projectRef.current);
+      if (validationErr) {
+        setError(validationErr);
+        return;
+      }
+      setPreviewStatus('starting');
+      setError(null);
+      const outcome = await onRunPreview(projectRef.current);
+      if (outcome.ok) {
+        setPreviewStatus('opened');
+      } else {
+        setPreviewStatus(outcome.error.message);
+        setError(outcome.error);
+      }
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [onRunPreview]);
 
     const saveProject = useCallback(async () => {
       if (!canEdit || !onSaveRef.current) return;
@@ -494,7 +520,7 @@ export const CodeEditor = forwardRef<CodeEditorApi, CodeEditorProps>(
                 placeholder="Optional input piped to the program when it runs"
               />
             </div>
-            {(canRun || onSave) && (
+            {(canRun || onSave || onRunPreview) && (
               <div className="sek-code-editor__actions">
                 {canRun && (
                   <button
@@ -508,6 +534,23 @@ export const CodeEditor = forwardRef<CodeEditorApi, CodeEditorProps>(
                     {!running && <span className="sek-code-editor__button-hint">F5</span>}
                   </button>
                 )}
+                {/* B2 live preview: only offered for languages whose "run" is really
+                    "start a server"/"render a page" — see isPreviewableLanguage. SEK
+                    never renders the result itself; the embedder opens previewUrl
+                    however fits its own UI (see onRunPreview's doc comment). */}
+                {canRun && onRunPreview && activeFile && isPreviewableLanguage(activeFile.language) && (
+                  <button
+                    type="button"
+                    className="sek-code-editor__preview-button"
+                    onClick={() => void runPreview()}
+                    disabled={previewStatus === 'starting'}
+                  >
+                    <span className="sek-code-editor__button-icon" aria-hidden="true">
+                      {previewStatus === 'starting' ? '' : '🔗'}
+                    </span>
+                    {previewStatus === 'starting' ? 'Starting preview…' : 'Preview'}
+                  </button>
+                )}
                 {canEdit && onSave && (
                   <button
                     type="button"
@@ -519,6 +562,11 @@ export const CodeEditor = forwardRef<CodeEditorApi, CodeEditorProps>(
                     {saving ? 'Saving…' : 'Save'}
                     {!saving && <span className="sek-code-editor__button-hint">Ctrl+S</span>}
                   </button>
+                )}
+                {previewStatus === 'opened' && (
+                  <span className="sek-code-editor__preview-status" role="status">
+                    Opened in Browser tab
+                  </span>
                 )}
               </div>
             )}

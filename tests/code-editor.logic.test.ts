@@ -14,6 +14,7 @@ import {
   defaultFilenameForLanguage,
   fuzzyMatchFiles,
   inferLanguageFromExtension,
+  isPreviewableLanguage,
   isSupportedLanguage,
   resizedSize,
   starterSnippetForLanguage,
@@ -244,4 +245,17 @@ test('fuzzyMatchFiles excludes paths missing any query character in order', () =
 test('fuzzyMatchFiles ranks an earlier, tighter match ahead of a longer/deeper one', () => {
   const paths = ['src/domain/main.py', 'main.py'];
   assert.deepEqual(fuzzyMatchFiles(paths, 'main'), ['main.py', 'src/domain/main.py']);
+});
+
+// B2 live preview: only "start a server"/"render a page" languages get a Preview action.
+test('isPreviewableLanguage accepts the static and persistent-server preview families', () => {
+  for (const language of ['html', 'css', 'javascript', 'nodejs', 'python'] as const) {
+    assert.equal(isPreviewableLanguage(language), true, language);
+  }
+});
+
+test('isPreviewableLanguage rejects languages with no meaningful preview', () => {
+  for (const language of ['c', 'cpp', 'java', 'dotnet', 'typescript', 'sql', 'go', 'rust', 'ruby', 'php', 'kotlin', 'shell'] as const) {
+    assert.equal(isPreviewableLanguage(language), false, language);
+  }
 });

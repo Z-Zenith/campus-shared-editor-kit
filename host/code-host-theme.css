@@ -162,6 +162,20 @@
   background: #1177bb;
 }
 
+.sek-code-editor[data-theme="dark"] .sek-code-editor__preview-button {
+  background: #3c3c3c;
+  color: #cccccc;
+  border: 1px solid #454545;
+}
+
+.sek-code-editor[data-theme="dark"] .sek-code-editor__preview-button:hover:not(:disabled) {
+  background: #454545;
+}
+
+.sek-code-editor[data-theme="dark"] .sek-code-editor__preview-status {
+  color: #3fb950;
+}
+
 .sek-code-editor[data-theme="dark"] .sek-code-editor__button-hint {
   background: #ffffff26;
 }
@@ -394,6 +408,20 @@
   background: #007acc;
   color: #ffffff;
   border: none;
+}
+
+.sek-code-editor[data-theme="light"] .sek-code-editor__preview-button {
+  background: #ffffff;
+  color: #1e1e1e;
+  border: 1px solid #cecece;
+}
+
+.sek-code-editor[data-theme="light"] .sek-code-editor__preview-button:hover:not(:disabled) {
+  background: #f3f3f3;
+}
+
+.sek-code-editor[data-theme="light"] .sek-code-editor__preview-status {
+  color: #14825a;
 }
 
 .sek-code-editor[data-theme="light"] .sek-code-editor__save-button:hover:not(:disabled) {

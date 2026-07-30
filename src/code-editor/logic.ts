@@ -251,6 +251,19 @@ export function resizedSize(startSize: number, delta: number, min: number, max: 
 }
 
 /**
+ * B2 live preview (SDA/SEK plan): languages whose "run" is really "start a server" or
+ * "render a page" rather than a batch stdout/stderr run — these get a Preview action
+ * (onRunPreview) alongside/instead of Run. html/css/javascript render as static pages;
+ * nodejs/python are the persistent-server family (see campus-backend's
+ * PreviewSessionService for the static-vs-persistent split this mirrors).
+ */
+const PREVIEWABLE_LANGUAGES: ReadonlySet<Language> = new Set(['html', 'css', 'javascript', 'nodejs', 'python']);
+
+export function isPreviewableLanguage(language: Language): boolean {
+  return PREVIEWABLE_LANGUAGES.has(language);
+}
+
+/**
  * Command-palette file switcher (SEK-01 shell-fidelity pass): subsequence fuzzy match,
  * VS Code's own "Go to File" style — every character of `query` must appear in the
  * candidate path in order, not necessarily contiguously, case-insensitive. An empty
