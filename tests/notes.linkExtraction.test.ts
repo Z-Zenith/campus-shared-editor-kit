@@ -98,3 +98,51 @@ test('uniqueLinkTargetsKey: order-independent and de-duplicates repeated targets
 test('uniqueLinkTargetsKey: empty for no links', () => {
   assert.equal(uniqueLinkTargetsKey([]), '');
 });
+
+// fix/redos-linkextraction — LINK_PATTERN's negated-class quantifiers are bounded
+// to {1,2000} to avoid the CodeQL js/polynomial-redos finding: an unbounded
+// unanchored scan-to-`]`/`)` costs O(n^2) on adversarial input (many stray `[`/`(`
+// with no closing delimiter). This asserts that behavior directly, not just the
+// absence of a crash — a regression back to an unbounded quantifier would still
+// pass every other test here but blow up on input like this.
+// Asserts the fix by scaling behavior rather than an absolute time budget: a
+// still-quadratic pattern shows ~10x cost for a 10x bigger input; a properly
+// bounded/linear one shows roughly 10x. This is what the bound actually buys —
+// it doesn't cap total cost for very large inputs (that's a separate, upstream
+// input-size concern; see NOTE below), it removes the quadratic blowup.
+test('bounded quantifier scales ~linearly, not quadratically, with input size', () => {
+  const time = (n: number) => {
+    const adversarial = '['.repeat(n);
+    const start = performance.now();
+    assert.deepEqual(extractOutgoingLinks(adversarial), []);
+    return performance.now() - start;
+  };
+
+  time(2_000); // JIT warm-up, excluded from the measurement
+  const small = time(20_000);
+  const large = time(200_000);
+
+  // Quadratic growth would show ~100x; allow generous headroom above the
+  // ~10x a linear function should show before calling it a regression.
+  assert.ok(
+    large < small * 40 + 50,
+    `expected roughly-linear scaling, got ${small}ms -> ${large}ms`,
+  );
+});
+
+// NOTE: the {1,2000} bound fixes the *quadratic* blowup CodeQL flagged, but a
+// large-enough adversarial paste (100s of KB, no upstream size limit on note
+// bodies in this repo) can still take multi-second wall-clock time, and
+// extractOutgoingLinks runs on every keystroke (see uniqueLinkTargetsKey's
+// doc comment). That's a separate input-size-validation gap, not re-fixed
+// here — flagging rather than silently changing NotesEditor's behavior.
+
+test('link target at the 2000-char bound still matches; past it is dropped', () => {
+  const atBound = 'x'.repeat(2000);
+  const overBound = 'x'.repeat(2001);
+
+  assert.deepEqual(extractOutgoingLinks(`[[${atBound}]]`), [
+    { toNoteId: atBound, anchor: atBound },
+  ]);
+  assert.deepEqual(extractOutgoingLinks(`[[${overBound}]]`), []);
+});
