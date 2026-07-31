@@ -11,8 +11,15 @@
 
 import type { OutgoingLinks } from './types.js';
 
+// Negated-class quantifiers are bounded (rather than unbounded `+`) to keep
+// worst-case cost linear in input length — CodeQL js/polynomial-redos flags
+// the unbounded form because an unanchored global match retries the pattern
+// at every offset, so an unbounded scan-to-`]`/`)`  on adversarial input
+// (e.g. a note body with many stray `[`/`(` and no closing delimiter) costs
+// O(n^2). Targets/anchors are short user-typed strings in practice, so 2000
+// chars is generous headroom, not a real-world truncation.
 const LINK_PATTERN =
-  /\[\[([^\]|]+)(?:\|([^\]]+))?\]\]|\[([^\]]+)\]\(id:([^)]+)\)/g;
+  /\[\[([^\]|]{1,2000})(?:\|([^\]]{1,2000}))?\]\]|\[([^\]]{1,2000})\]\(id:([^)]{1,2000})\)/g;
 
 /**
  * Extracts every outgoing link from a note's raw Markdown body, in source
