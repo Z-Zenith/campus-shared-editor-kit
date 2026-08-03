@@ -128,6 +128,14 @@ export const DocumentViewer = forwardRef<DocumentViewerApi, DocumentViewerProps>
     // finger touching the surface mid-drag (or any other stray pointer)
     // would feed its coordinates into the same in-progress draft.
     const activePointerIdRef = useRef<number | null>(null);
+    // Bumped in the same effect that resets annotations/tools when doc.id or
+    // doc.type changes (below). commitChange captures this before awaiting
+    // onAnnotationChange and checks it again after — if the embedder swapped
+    // the open document while the save was in flight, the continuation is
+    // stale and must not apply its result (e.g. an annotation for the
+    // previous document) to the new document's annotations state. Same
+    // pattern as ocrRequestIdRef above.
+    const documentGenerationRef = useRef(0);
 
     const canAnnotatePdf = canAnnotate && doc.type === 'pdf';
     const canOcrPdf = canOcr && doc.type === 'pdf';
@@ -144,6 +152,7 @@ export const DocumentViewer = forwardRef<DocumentViewerApi, DocumentViewerProps>
       setOcrResult(null);
       setOcrLoading(false);
       ocrRequestIdRef.current += 1;
+      documentGenerationRef.current += 1;
       setError(KNOWN_DOCUMENT_TYPES.has(doc.type)
         ? null
         : { code: 'unsupported_document_type', message: `Unsupported document type: "${doc.type}".` });
@@ -196,7 +205,16 @@ export const DocumentViewer = forwardRef<DocumentViewerApi, DocumentViewerProps>
     };
 
     const commitChange = async (change: AnnotationChange): Promise<boolean> => {
+      const generation = documentGenerationRef.current;
       const result = await onAnnotationChange(change);
+      if (documentGenerationRef.current !== generation) {
+        // The embedder swapped the open document while this save was in
+        // flight — applying it now would attach/update/remove an annotation
+        // against whatever document is now open (getAnnotations() is
+        // documented as returning "all current annotations" for the open
+        // document), not the document this change actually belongs to.
+        return false;
+      }
       if (!result.ok) {
         setError(result.error);
         return false;
