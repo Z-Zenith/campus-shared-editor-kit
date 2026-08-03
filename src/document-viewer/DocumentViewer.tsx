@@ -292,17 +292,25 @@ export const DocumentViewer = forwardRef<DocumentViewerApi, DocumentViewerProps>
       }
 
       if (draft.kind === 'rectangle' || draft.kind === 'arrow' || draft.kind === 'line') {
-        // Snap on commit, not while dragging — see GRID_SIZE's comment.
-        const start = snapToGrid(draft.start, GRID_SIZE);
-        const end = snapToGrid(draft.current, GRID_SIZE);
-        // Rectangle sizability reuses the highlight rule (both dimensions
-        // must clear the threshold, rejecting slivers); arrow/line only
-        // care about end-to-end length, so they reuse the ink-stroke rule.
+        // Sizability is checked against the raw, pre-snap points. GRID_SIZE
+        // (0.02) is larger than MIN_RECT_SIZE/MIN_STROKE_LENGTH (0.01), so
+        // two points from a clearly deliberate drag can round to the same
+        // grid intersection — checking post-snap would let grid alignment
+        // retroactively invalidate an already-valid drag and silently drop
+        // the shape. Rectangle sizability reuses the highlight rule (both
+        // dimensions must clear the threshold, rejecting slivers); arrow/
+        // line only care about end-to-end length, so they reuse the
+        // ink-stroke rule.
         const sizable =
           draft.kind === 'rectangle'
-            ? isRectSizable(rectFromPoints(start, end))
-            : isStrokeSizable([start, end]);
+            ? isRectSizable(rectFromPoints(draft.start, draft.current))
+            : isStrokeSizable([draft.start, draft.current]);
         if (sizable) {
+          // Snap only now, on commit of an already-valid drag — see
+          // GRID_SIZE's comment for why this happens on commit rather than
+          // while dragging.
+          const start = snapToGrid(draft.start, GRID_SIZE);
+          const end = snapToGrid(draft.current, GRID_SIZE);
           const annotation: ShapeAnnotation = {
             kind: 'shape',
             id: newAnnotationId(),
