@@ -128,6 +128,14 @@ export const DocumentViewer = forwardRef<DocumentViewerApi, DocumentViewerProps>
     // finger touching the surface mid-drag (or any other stray pointer)
     // would feed its coordinates into the same in-progress draft.
     const activePointerIdRef = useRef<number | null>(null);
+    // Bumped in the same effect that resets annotations/tools when doc.id or
+    // doc.type changes (below). commitChange captures this before awaiting
+    // onAnnotationChange and checks it again after — if the embedder swapped
+    // the open document while the save was in flight, the continuation is
+    // stale and must not apply its result (e.g. an annotation for the
+    // previous document) to the new document's annotations state. Same
+    // pattern as ocrRequestIdRef above.
+    const documentGenerationRef = useRef(0);
 
     const canAnnotatePdf = canAnnotate && doc.type === 'pdf';
     const canOcrPdf = canOcr && doc.type === 'pdf';
@@ -144,6 +152,7 @@ export const DocumentViewer = forwardRef<DocumentViewerApi, DocumentViewerProps>
       setOcrResult(null);
       setOcrLoading(false);
       ocrRequestIdRef.current += 1;
+      documentGenerationRef.current += 1;
       setError(KNOWN_DOCUMENT_TYPES.has(doc.type)
         ? null
         : { code: 'unsupported_document_type', message: `Unsupported document type: "${doc.type}".` });
@@ -196,7 +205,16 @@ export const DocumentViewer = forwardRef<DocumentViewerApi, DocumentViewerProps>
     };
 
     const commitChange = async (change: AnnotationChange): Promise<boolean> => {
+      const generation = documentGenerationRef.current;
       const result = await onAnnotationChange(change);
+      if (documentGenerationRef.current !== generation) {
+        // The embedder swapped the open document while this save was in
+        // flight — applying it now would attach/update/remove an annotation
+        // against whatever document is now open (getAnnotations() is
+        // documented as returning "all current annotations" for the open
+        // document), not the document this change actually belongs to.
+        return false;
+      }
       if (!result.ok) {
         setError(result.error);
         return false;
@@ -274,17 +292,25 @@ export const DocumentViewer = forwardRef<DocumentViewerApi, DocumentViewerProps>
       }
 
       if (draft.kind === 'rectangle' || draft.kind === 'arrow' || draft.kind === 'line') {
-        // Snap on commit, not while dragging — see GRID_SIZE's comment.
-        const start = snapToGrid(draft.start, GRID_SIZE);
-        const end = snapToGrid(draft.current, GRID_SIZE);
-        // Rectangle sizability reuses the highlight rule (both dimensions
-        // must clear the threshold, rejecting slivers); arrow/line only
-        // care about end-to-end length, so they reuse the ink-stroke rule.
+        // Sizability is checked against the raw, pre-snap points. GRID_SIZE
+        // (0.02) is larger than MIN_RECT_SIZE/MIN_STROKE_LENGTH (0.01), so
+        // two points from a clearly deliberate drag can round to the same
+        // grid intersection — checking post-snap would let grid alignment
+        // retroactively invalidate an already-valid drag and silently drop
+        // the shape. Rectangle sizability reuses the highlight rule (both
+        // dimensions must clear the threshold, rejecting slivers); arrow/
+        // line only care about end-to-end length, so they reuse the
+        // ink-stroke rule.
         const sizable =
           draft.kind === 'rectangle'
-            ? isRectSizable(rectFromPoints(start, end))
-            : isStrokeSizable([start, end]);
+            ? isRectSizable(rectFromPoints(draft.start, draft.current))
+            : isStrokeSizable([draft.start, draft.current]);
         if (sizable) {
+          // Snap only now, on commit of an already-valid drag — see
+          // GRID_SIZE's comment for why this happens on commit rather than
+          // while dragging.
+          const start = snapToGrid(draft.start, GRID_SIZE);
+          const end = snapToGrid(draft.current, GRID_SIZE);
           const annotation: ShapeAnnotation = {
             kind: 'shape',
             id: newAnnotationId(),

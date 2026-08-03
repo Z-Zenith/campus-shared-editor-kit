@@ -104,6 +104,14 @@ export const NotesEditor = forwardRef<NotesEditorApi, NotesEditorProps>(
     const contentRef = useRef(content);
     contentRef.current = content;
 
+    // Bumped whenever currentNote?.id changes (in the same effect that
+    // resets title/content/editor below) so loadNote's continuation can
+    // recognize when the embedder has swapped to a different note while a
+    // reload for the *previous* note is still in flight, and skip applying
+    // its now-stale result — same pattern as DocumentViewer's
+    // ocrRequestIdRef/documentGenerationRef.
+    const noteGenerationRef = useRef(0);
+
     const editor = useEditor({
       extensions: NOTES_EXTENSIONS,
       content: currentNote?.contentMarkdown ?? '',
@@ -129,6 +137,7 @@ export const NotesEditor = forwardRef<NotesEditorApi, NotesEditorProps>(
     const linkTargetsKey = useMemo(() => uniqueLinkTargetsKey(outgoingLinks), [outgoingLinks]);
 
     const loadNote = async (noteId: string | null) => {
+      const generation = noteGenerationRef.current;
       setError(null);
       if (noteId === null) {
         setTitle('');
@@ -141,6 +150,13 @@ export const NotesEditor = forwardRef<NotesEditorApi, NotesEditorProps>(
         onResolveLink(noteId),
         onListBacklinks(noteId),
       ]);
+      if (noteGenerationRef.current !== generation) {
+        // currentNote changed while this reload was in flight — applying
+        // this stale note's data now would silently overwrite whatever the
+        // user is currently viewing/editing (a different, possibly
+        // freshly-typed note) with the old note's content.
+        return;
+      }
       if (resolved.ok) {
         setTitle(resolved.value.title);
         setContent(resolved.value.contentMarkdown);
@@ -155,6 +171,7 @@ export const NotesEditor = forwardRef<NotesEditorApi, NotesEditorProps>(
     // both the editor instance (imperatively) and the mirrored `content` state in the
     // same effect, rather than relying on onUpdate's callback loop to sync state back.
     useEffect(() => {
+      noteGenerationRef.current += 1;
       setTitle(currentNote?.title ?? '');
       setContent(currentNote?.contentMarkdown ?? '');
       editor?.commands.setContent(currentNote?.contentMarkdown ?? '', { contentType: 'markdown' });
