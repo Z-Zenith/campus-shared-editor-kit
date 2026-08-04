@@ -2,7 +2,7 @@
 
 Public TypeScript interface for the **Shared Editor Kit (SEK)** — the cross-container component consumed by the **Student Desktop App** (SDA, `SDA-19`) and the **Teacher Web App** (TWA, `TWA-14`).
 
-> **Status: interfaces defined, components land per-feature.** This package ships the contract for every SEK feature; runtime components are implemented one feature at a time as each is picked up. Defining the interface up front is a `docs/campus-platform-work-division.md` Section 2 Week 0 item — it unblocks both tracks before all editor UI is built.
+> **Status: all five SEK features have a runtime implementation.** The interface was defined up front — a `docs/campus-platform-work-division.md` Section 2 Week 0 item, so both tracks could build against a stable contract before all editor UI existed — and components landed one feature at a time after that. See the table below for what backs each ID.
 
 ## Features covered
 
@@ -17,7 +17,7 @@ Public TypeScript interface for the **Shared Editor Kit (SEK)** — the cross-co
 ## Consumers
 
 - **TWA (React + TypeScript):** imports types directly from this package.
-- **SDA (Avalonia / .NET 10):** integrated via a NativeWebView host bundle, not a C# binding. `apps/student-desktop/StudentDesktop.csproj` copies `dist/host/**` (built by `npm run build:host`) into the app's output under `SekHost/`, and SDA-19's `NotesEditor` loads there through `Avalonia.Controls.WebView`. Building `dist/host/**` before `dotnet build` is a manual dev prerequisite for now — not yet wired into a cross-toolchain CI step (tracked as a follow-up).
+- **SDA (Avalonia / .NET 10):** integrated via a NativeWebView host bundle, not a C# binding. `apps/student-desktop/StudentDesktop.csproj` copies `dist/host/**` (built by `npm run build:host`) into the app's output under `SekHost/`, and SDA-19's `NotesEditor` loads there through `Avalonia.Controls.WebView`. Building `dist/host/**` before `dotnet build` is still a manual step for local dev, but `campus-student-desktop`'s own CI (`.github/workflows/ci.yml`) already runs `npm run build:host` for this submodule before the .NET build/test steps, so it's not an open follow-up in that pipeline.
 
 ## Usage
 
@@ -95,9 +95,10 @@ DOM-testing dependency is added to the package.
 - **Annotation is PDF-only**, per spec — the pointer-drag overlay and OCR controls only mount
   when `document.type === 'pdf'`; pptx/docx render view-only with a hint explaining why.
 - **OCR is scoped to triggering + rendering `onOcrPage`'s result**, labeled "best-effort" in
-  the UI per the spec's "basic OCR" framing. The actual OCR model lives in the AI Services
-  container — this component only calls the embedder-supplied callback and shows what comes
-  back.
+  the UI per the spec's "basic OCR" framing. This component only calls the embedder-supplied
+  callback and shows what comes back — as of this writing, `campus-ai-services` exposes no OCR
+  route, so no embedder has a real model to call yet; `onOcrPage` is a contract waiting on that
+  implementation, not a pointer to an existing one.
 
 ## Notes on diagram-ink mode (SEK-05)
 
